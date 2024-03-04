@@ -19,6 +19,7 @@ export type FunctionParameter = AssignmentPattern | BindingIdentifier | BindingP
 export type ImportDeclarationSpecifier = ImportDefaultSpecifier | ImportNamespaceSpecifier | ImportSpecifier;
 export type ObjectExpressionProperty = Property | SpreadElement;
 export type ObjectPatternProperty = Property | RestElement;
+export type Program = Module | Script;
 export type Statement = AsyncFunctionDeclaration | BreakStatement | ContinueStatement | DebuggerStatement | DoWhileStatement |
     EmptyStatement | ExpressionStatement | Directive | ForStatement | ForInStatement | ForOfStatement |
     FunctionDeclaration | IfStatement | ReturnStatement | SwitchStatement | ThrowStatement |

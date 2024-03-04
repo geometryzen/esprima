@@ -2,7 +2,8 @@ import { ErrorHandler } from './error-handler';
 import { Comment, Position, Scanner, SourceLocation } from './scanner';
 import { RawToken, ReaderEntry, Token, TokenName } from './token';
 
-interface BufferEntry {
+// Duplicates TokenEntry?
+export interface BufferEntry {
     type: string;
     value: string;
     regex?: {
@@ -125,7 +126,7 @@ export class Tokenizer {
         return this.errorHandler.errors;
     }
 
-    getNextToken() {
+    getNextToken(): BufferEntry {
         if (this.buffer.length === 0) {
 
             const comments: Comment[] | undefined = this.scanner.scanComments();
@@ -200,7 +201,7 @@ export class Tokenizer {
             }
         }
 
-        return this.buffer.shift();
+        return this.buffer.shift() as BufferEntry;
     }
 
 }

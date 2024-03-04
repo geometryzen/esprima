@@ -24,8 +24,10 @@
 
 import { CommentHandler } from './comment-handler';
 import { JSXParser } from './jsx-parser';
+import { Module, Program, Script } from './nodes';
 import { MetaData, Parser } from './parser';
-import { Tokenizer } from './tokenizer';
+import { TokenEntry } from './token';
+import { BufferEntry, Tokenizer, TokenizerConfig } from './tokenizer';
 
 export interface ParseOptions {
     comment?: boolean;
@@ -44,9 +46,9 @@ export interface ParseOptions {
  */
 export type ParseDelegate = (node: Node, metadata: MetaData) => void;
 
-export function parse(code: string, options, delegate) {
+export function parse(sourceText: string, options?: ParseOptions, delegate?: ParseDelegate): Program {
     let commentHandler: CommentHandler | null = null;
-    const proxyDelegate = (node, metadata) => {
+    const proxyDelegate: ParseDelegate = (node, metadata) => {
         if (delegate) {
             delegate(node, metadata);
         }
@@ -75,9 +77,10 @@ export function parse(code: string, options, delegate) {
 
     let parser: Parser;
     if (options && typeof options.jsx === 'boolean' && options.jsx) {
-        parser = new JSXParser(code, options, parserDelegate);
-    } else {
-        parser = new Parser(code, options, parserDelegate);
+        parser = new JSXParser(sourceText, options, parserDelegate);
+    }
+    else {
+        parser = new Parser(sourceText, options, parserDelegate);
     }
 
     const program = isModule ? parser.parseModule() : parser.parseScript();
@@ -96,22 +99,22 @@ export function parse(code: string, options, delegate) {
     return ast;
 }
 
-export function parseModule(code: string, options, delegate) {
+export function parseModule(sourceText: string, options: ParseOptions = {}, delegate?: ParseDelegate): Module {
     const parsingOptions = options || {};
     parsingOptions.sourceType = 'module';
-    return parse(code, parsingOptions, delegate);
+    return parse(sourceText, parsingOptions, delegate);
 }
 
-export function parseScript(code: string, options, delegate) {
+export function parseScript(sourceText: string, options: ParseOptions = {}, delegate?: ParseDelegate): Script {
     const parsingOptions = options || {};
     parsingOptions.sourceType = 'script';
-    return parse(code, parsingOptions, delegate);
+    return parse(sourceText, parsingOptions, delegate);
 }
 
-export function tokenize(code: string, options, delegate) {
+export function tokenize(code: string, options: TokenizerConfig, delegate?: (token: TokenEntry) => TokenEntry): TokenEntry[] {
     const tokenizer = new Tokenizer(code, options);
 
-    const tokens: any = [];
+    const tokens: BufferEntry[] = [];
 
     try {
         while (true) {
@@ -124,12 +127,13 @@ export function tokenize(code: string, options, delegate) {
             }
             tokens.push(token);
         }
-    } catch (e) {
+    }
+    catch (e) {
         tokenizer.errorHandler.tolerate(e);
     }
 
     if (tokenizer.errorHandler.tolerant) {
-        tokens.errors = tokenizer.errors();
+        tokens['errors'] = tokenizer.errors();
     }
 
     return tokens;
