@@ -10,7 +10,9 @@ export const enum Token {
     Punctuator,
     StringLiteral,
     RegularExpression,
-    Template
+    Template,
+    JSXIdentifier,
+    JSXText
 }
 
 export const TokenName: { [key: number]: string } = {};
@@ -24,6 +26,8 @@ TokenName[Token.Punctuator] = 'Punctuator';
 TokenName[Token.StringLiteral] = 'String';
 TokenName[Token.RegularExpression] = 'RegularExpression';
 TokenName[Token.Template] = 'Template';
+TokenName[Token.JSXIdentifier] = 'JSXIdentifier';
+TokenName[Token.JSXText] = 'JSXText';
 
 // type keywords = 'async' | 'await' | 'class' | 'constructor' | 'delete' | 'for' | 'function' | 'get' | 'if' | 'in' | 'let' | 'new' | 'set' | 'super' | 'target' | 'this' | 'typeof' | 'void' | 'while' | 'with' | 'yield';
 // type more = '{' | '(' | '[' | '*' | ':' | ',' | ';' | '=' | '.' | '...' | '*=' | '**=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '>>>=' | '&=' | '^=' | '|=';

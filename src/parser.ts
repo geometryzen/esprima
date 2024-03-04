@@ -236,14 +236,16 @@ export class Parser {
                 if (token.type === Token.Keyword) {
                     if (this.scanner.isFutureReservedWord(token.value)) {
                         msg = Messages.UnexpectedReserved;
-                    } else if (this.context.strict && this.scanner.isStrictModeReservedWord(token.value)) {
+                    }
+                    else if (this.context.strict && this.scanner.isStrictModeReservedWord(token.value)) {
                         msg = Messages.StrictReservedWord;
                     }
                 }
             }
 
             value = token.value;
-        } else {
+        }
+        else {
             value = 'ILLEGAL';
         }
 
@@ -255,7 +257,8 @@ export class Parser {
             const lastMarkerLineStart = this.lastMarker.index - this.lastMarker.column;
             const column = token.start - lastMarkerLineStart + 1;
             return this.errorHandler.createError(index, line, column, msg);
-        } else {
+        }
+        else {
             const index = this.lastMarker.index;
             const line = this.lastMarker.line;
             const column = this.lastMarker.column + 1;
@@ -263,26 +266,27 @@ export class Parser {
         }
     }
 
-    throwUnexpectedToken(token?, message?): never {
+    throwUnexpectedToken(token?: RawToken, message?: string): never {
         throw this.unexpectedTokenError(token, message);
     }
 
-    tolerateUnexpectedToken(token?, message?) {
+    tolerateUnexpectedToken(token?: RawToken, message?: string): void {
         this.errorHandler.tolerate(this.unexpectedTokenError(token, message));
     }
 
-    tolerateInvalidLoopStatement() {
+    tolerateInvalidLoopStatement(): void {
         if (this.matchKeyword("class") || this.matchKeyword("function")) {
             this.tolerateError(Messages.UnexpectedToken, this.lookahead);
         }
     }
 
-    collectComments() {
+    collectComments(): void {
         if (!this.config.comment) {
             this.scanner.scanComments();
-        } else {
-            const comments: Comment[] = this.scanner.scanComments();
-            if (comments.length > 0 && this.delegate) {
+        }
+        else {
+            const comments: Comment[] | undefined = this.scanner.scanComments();
+            if (Array.isArray(comments) && comments.length > 0 && this.delegate) {
                 for (let i = 0; i < comments.length; ++i) {
                     const e: Comment = comments[i];
                     const node: any = {
@@ -478,13 +482,16 @@ export class Parser {
             const token = this.lookahead;
             if (token.type === Token.Punctuator && token.value === ',') {
                 this.nextToken();
-            } else if (token.type === Token.Punctuator && token.value === ';') {
+            }
+            else if (token.type === Token.Punctuator && token.value === ';') {
                 this.nextToken();
                 this.tolerateUnexpectedToken(token);
-            } else {
+            }
+            else {
                 this.tolerateUnexpectedToken(token, Messages.UnexpectedToken);
             }
-        } else {
+        }
+        else {
             this.expect(',');
         }
     }
@@ -614,7 +621,8 @@ export class Parser {
     consumeSemicolon() {
         if (this.match(';')) {
             this.nextToken();
-        } else if (!this.hasLineTerminator) {
+        }
+        else if (!this.hasLineTerminator) {
             if (this.lookahead.type !== Token.EOF && !this.match('}')) {
                 this.throwUnexpectedToken(this.lookahead);
             }
@@ -701,26 +709,33 @@ export class Parser {
             case Token.Keyword:
                 if (!this.context.strict && this.context.allowYield && this.matchKeyword('yield')) {
                     expr = this.parseIdentifierName();
-                } else if (!this.context.strict && this.matchKeyword('let')) {
+                }
+                else if (!this.context.strict && this.matchKeyword('let')) {
                     expr = this.finalize(node, new Node.Identifier(this.nextToken().value));
-                } else {
+                }
+                else {
                     this.context.isAssignmentTarget = false;
                     this.context.isBindingElement = false;
                     if (this.matchKeyword('function')) {
                         expr = this.parseFunctionExpression();
-                    } else if (this.matchKeyword('this')) {
+                    }
+                    else if (this.matchKeyword('this')) {
                         this.nextToken();
                         expr = this.finalize(node, new Node.ThisExpression());
-                    } else if (this.matchKeyword('class')) {
+                    }
+                    else if (this.matchKeyword('class')) {
                         expr = this.parseClassExpression();
-                    } else if (this.matchImportCall()) {
+                    }
+                    else if (this.matchImportCall()) {
                         expr = this.parseImportCall();
-                    } else if (this.matchImportMeta()) {
+                    }
+                    else if (this.matchImportMeta()) {
                         if (!this.context.isModule) {
                             this.tolerateUnexpectedToken(this.lookahead, Messages.CannotUseImportMetaOutsideAModule);
                         }
                         expr = this.parseImportMeta();
-                    } else {
+                    }
+                    else {
                         expr = this.throwUnexpectedToken(this.nextToken());
                     }
                 }
@@ -751,7 +766,8 @@ export class Parser {
             if (this.match(',')) {
                 this.nextToken();
                 elements.push(null);
-            } else if (this.match('...')) {
+            }
+            else if (this.match('...')) {
                 const element = this.parseSpreadElement();
                 if (!this.match(']')) {
                     this.context.isAssignmentTarget = false;
@@ -759,7 +775,8 @@ export class Parser {
                     this.expect(',');
                 }
                 elements.push(element);
-            } else {
+            }
+            else {
                 elements.push(this.inheritCoverGrammar(this.parseAssignmentExpression));
                 if (!this.match(']')) {
                     this.expect(',');
@@ -847,7 +864,8 @@ export class Parser {
                 if (token.value === '[') {
                     key = this.isolateCoverGrammar(this.parseAssignmentExpression) as Node.PropertyKey;
                     this.expect(']');
-                } else {
+                }
+                else {
                     key = this.throwUnexpectedToken(token);
                 }
                 break;
@@ -889,9 +907,11 @@ export class Parser {
                 this.nextToken();
             }
             key = isAsync ? this.parseObjectPropertyKey() : this.finalize(node, new Node.Identifier(id));
-        } else if (this.match('*')) {
+        }
+        else if (this.match('*')) {
             this.nextToken();
-        } else {
+        }
+        else {
             computed = this.match('[');
             key = this.parseObjectPropertyKey();
         }
@@ -904,20 +924,23 @@ export class Parser {
             this.context.allowYield = false;
             value = this.parseGetterMethod();
 
-        } else if (token.type === Token.Identifier && !isAsync && token.value === 'set' && lookaheadPropertyKey) {
+        }
+        else if (token.type === Token.Identifier && !isAsync && token.value === 'set' && lookaheadPropertyKey) {
             kind = 'set';
             computed = this.match('[');
             key = this.parseObjectPropertyKey();
             value = this.parseSetterMethod();
 
-        } else if (token.type === Token.Punctuator && token.value === '*' && lookaheadPropertyKey) {
+        }
+        else if (token.type === Token.Punctuator && token.value === '*' && lookaheadPropertyKey) {
             kind = 'init';
             computed = this.match('[');
             key = this.parseObjectPropertyKey();
             value = this.parseGeneratorMethod();
             method = true;
 
-        } else {
+        }
+        else {
             if (!key) {
                 this.throwUnexpectedToken(this.lookahead);
             }
@@ -933,11 +956,13 @@ export class Parser {
                 this.nextToken();
                 value = this.inheritCoverGrammar(this.parseAssignmentExpression);
 
-            } else if (this.match('(')) {
+            }
+            else if (this.match('(')) {
                 value = isAsync ? this.parsePropertyMethodAsyncFunction(isGenerator) : this.parsePropertyMethodFunction(isGenerator);
                 method = true;
 
-            } else if (token.type === Token.Identifier) {
+            }
+            else if (token.type === Token.Identifier) {
                 const id = this.finalize(node, new Node.Identifier(token.value));
                 if (this.match('=')) {
                     this.context.firstCoverInitializedNameError = this.lookahead;
@@ -945,11 +970,13 @@ export class Parser {
                     shorthand = true;
                     const init = this.isolateCoverGrammar(this.parseAssignmentExpression);
                     value = this.finalize(node, new Node.AssignmentPattern(id, init));
-                } else {
+                }
+                else {
                     shorthand = true;
                     value = id;
                 }
-            } else {
+            }
+            else {
                 this.throwUnexpectedToken(this.nextToken());
             }
         }
@@ -1090,7 +1117,8 @@ export class Parser {
                 params: [],
                 async: false
             };
-        } else {
+        }
+        else {
             const startToken = this.lookahead;
             const params = [];
             if (this.match('...')) {
@@ -1104,7 +1132,8 @@ export class Parser {
                     params: [expr],
                     async: false
                 };
-            } else {
+            }
+            else {
                 let arrow = false;
                 this.context.isBindingElement = true;
                 expr = this.inheritCoverGrammar(this.parseAssignmentExpression);
@@ -1130,7 +1159,8 @@ export class Parser {
                                 params: expressions,
                                 async: false
                             };
-                        } else if (this.match('...')) {
+                        }
+                        else if (this.match('...')) {
                             if (!this.context.isBindingElement) {
                                 this.throwUnexpectedToken(this.lookahead);
                             }
@@ -1149,7 +1179,8 @@ export class Parser {
                                 params: expressions,
                                 async: false
                             };
-                        } else {
+                        }
+                        else {
                             expressions.push(this.inheritCoverGrammar(this.parseAssignmentExpression));
                         }
                         if (arrow) {
@@ -1181,7 +1212,8 @@ export class Parser {
                                 for (let i = 0; i < expr.expressions.length; i++) {
                                     this.reinterpretExpressionAsPattern(expr.expressions[i]);
                                 }
-                            } else {
+                            }
+                            else {
                                 this.reinterpretExpressionAsPattern(expr);
                             }
 
@@ -1253,12 +1285,15 @@ export class Parser {
             if (this.lookahead.type === Token.Identifier && this.context.inFunctionBody && this.lookahead.value === 'target') {
                 const property = this.parseIdentifierName();
                 expr = new Node.MetaProperty(id, property);
-            } else {
+            }
+            else {
                 this.throwUnexpectedToken(this.lookahead);
             }
-        } else if (this.matchKeyword('import')) {
+        }
+        else if (this.matchKeyword('import')) {
             this.throwUnexpectedToken(this.lookahead);
-        } else {
+        }
+        else {
             const callee = this.isolateCoverGrammar(this.parseLeftHandSideExpression);
             const args = this.match('(') ? this.parseArguments() : [];
             expr = new Node.NewExpression(callee, args);
@@ -1331,7 +1366,8 @@ export class Parser {
                         this.tolerateUnexpectedToken(meta, Messages.InvalidEscapedReservedWord);
                     }
                 }
-            } else {
+            }
+            else {
                 match = false;
             }
             this.scanner.restoreState(state);
@@ -1365,7 +1401,8 @@ export class Parser {
             if (!this.match('(') && !this.match('.') && !this.match('[')) {
                 this.throwUnexpectedToken(this.lookahead);
             }
-        } else {
+        }
+        else {
             expr = this.inheritCoverGrammar(this.matchKeyword('new') ? this.parseNewExpression : this.parsePrimaryExpression);
         }
 
@@ -1401,7 +1438,8 @@ export class Parser {
                         async: true
                     };
                 }
-            } else if (this.match('[')) {
+            }
+            else if (this.match('[')) {
                 this.context.isBindingElement = false;
                 this.context.isAssignmentTarget = !optional;
                 this.expect('[');
@@ -1409,7 +1447,8 @@ export class Parser {
                 this.expect(']');
                 expr = this.finalize(this.startNode(startToken), new Node.ComputedMemberExpression(expr, property, optional));
 
-            } else if (this.lookahead.type === Token.Template && this.lookahead.head) {
+            }
+            else if (this.lookahead.type === Token.Template && this.lookahead.head) {
                 // Optional template literal is not included in the spec.
                 // https://github.com/tc39/proposal-optional-chaining/issues/54
                 if (optional) {
@@ -1421,7 +1460,8 @@ export class Parser {
                 const quasi = this.parseTemplateLiteral({ isTagged: true });
                 expr = this.finalize(this.startNode(startToken), new Node.TaggedTemplateExpression(expr, quasi));
 
-            } else if (this.match('.') || optional) {
+            }
+            else if (this.match('.') || optional) {
                 this.context.isBindingElement = false;
                 this.context.isAssignmentTarget = !optional;
                 if (!optional) {
@@ -1430,7 +1470,8 @@ export class Parser {
                 const property = this.parseIdentifierName();
                 expr = this.finalize(this.startNode(startToken), new Node.StaticMemberExpression(expr, property, optional));
 
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -1479,7 +1520,8 @@ export class Parser {
                 this.expect(']');
                 expr = this.finalize(node, new Node.ComputedMemberExpression(expr, property, optional));
 
-            } else if (this.lookahead.type === Token.Template && this.lookahead.head) {
+            }
+            else if (this.lookahead.type === Token.Template && this.lookahead.head) {
                 // Optional template literal is not included in the spec.
                 // https://github.com/tc39/proposal-optional-chaining/issues/54
                 if (optional) {
@@ -1491,7 +1533,8 @@ export class Parser {
                 const quasi = this.parseTemplateLiteral({ isTagged: true });
                 expr = this.finalize(node, new Node.TaggedTemplateExpression(expr, quasi));
 
-            } else if (this.match('.') || optional) {
+            }
+            else if (this.match('.') || optional) {
                 this.context.isBindingElement = false;
                 this.context.isAssignmentTarget = !optional;
                 if (!optional) {
@@ -1500,7 +1543,8 @@ export class Parser {
                 const property = this.parseIdentifierName();
                 expr = this.finalize(node, new Node.StaticMemberExpression(expr, property, optional));
 
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -1531,7 +1575,8 @@ export class Parser {
             expr = this.finalize(node, new Node.UpdateExpression(token.value, expr, prefix));
             this.context.isAssignmentTarget = false;
             this.context.isBindingElement = false;
-        } else {
+        }
+        else {
             expr = this.inheritCoverGrammar(this.parseLeftHandSideExpressionAllowCall);
             if (!this.hasLineTerminator && this.lookahead.type === Token.Punctuator) {
                 if (this.match('++') || this.match('--')) {
@@ -1576,9 +1621,11 @@ export class Parser {
             }
             this.context.isAssignmentTarget = false;
             this.context.isBindingElement = false;
-        } else if (this.context.isAsync && this.matchContextualKeyword('await')) {
+        }
+        else if (this.context.isAsync && this.matchContextualKeyword('await')) {
             expr = this.parseAwaitExpression();
-        } else {
+        }
+        else {
             expr = this.parseUpdateExpression();
         }
 
@@ -1615,9 +1662,11 @@ export class Parser {
         let precedence;
         if (token.type === Token.Punctuator) {
             precedence = this.operatorPrecedence[op] || 0;
-        } else if (token.type === Token.Keyword) {
+        }
+        else if (token.type === Token.Keyword) {
             precedence = (op === 'instanceof' || (this.context.allowIn && op === 'in')) ? 12 : 0;
-        } else {
+        }
+        else {
             precedence = 0;
         }
         return precedence;
@@ -1791,7 +1840,8 @@ export class Parser {
                     delete param.right.argument;
                     delete param.right.delegate;
                 }
-            } else if (asyncArrow && param.type === Syntax.Identifier && param.name === 'await') {
+            }
+            else if (asyncArrow && param.type === Syntax.Identifier && param.name === 'await') {
                 this.throwUnexpectedToken(this.lookahead);
             }
             this.checkPatternParam(options, param);
@@ -1826,7 +1876,8 @@ export class Parser {
 
         if (!this.context.allowYield && this.matchKeyword('yield')) {
             expr = this.parseYieldExpression();
-        } else {
+        }
+        else {
             const startToken = this.lookahead;
             let token = startToken;
             expr = this.parseConditionalExpression();
@@ -1874,7 +1925,8 @@ export class Parser {
                         this.context.allowIn = true;
                         body = this.parseFunctionSourceElements();
                         this.context.allowIn = previousAllowIn;
-                    } else {
+                    }
+                    else {
                         body = this.isolateCoverGrammar(this.parseAssignmentExpression);
                     }
                     const expression = body.type !== Syntax.BlockStatement;
@@ -1893,7 +1945,8 @@ export class Parser {
                     this.context.allowYield = previousAllowYield;
                     this.context.isAsync = previousIsAsync;
                 }
-            } else {
+            }
+            else {
 
                 if (this.matchAssign()) {
                     if (!this.context.isAssignmentTarget) {
@@ -1913,7 +1966,8 @@ export class Parser {
                     if (!this.match('=')) {
                         this.context.isAssignmentTarget = false;
                         this.context.isBindingElement = false;
-                    } else {
+                    }
+                    else {
                         this.reinterpretExpressionAsPattern(expr);
                     }
 
@@ -1969,9 +2023,11 @@ export class Parser {
                 case 'import':
                     if (this.matchImportCall()) {
                         statement = this.parseExpressionStatement();
-                    } else if (this.matchImportMeta()) {
+                    }
+                    else if (this.matchImportMeta()) {
                         statement = this.parseStatement();
-                    } else {
+                    }
+                    else {
                         if (!this.context.isModule) {
                             this.tolerateUnexpectedToken(this.lookahead, Messages.IllegalImportDeclaration);
                         }
@@ -1994,7 +2050,8 @@ export class Parser {
                     statement = this.parseStatement();
                     break;
             }
-        } else {
+        }
+        else {
             statement = this.parseStatement();
         }
 
@@ -2036,11 +2093,13 @@ export class Parser {
                 if (this.match('=')) {
                     this.nextToken();
                     init = this.isolateCoverGrammar(this.parseAssignmentExpression);
-                } else {
+                }
+                else {
                     this.throwError(Messages.DeclarationMissingInitializer, 'const');
                 }
             }
-        } else if ((!options.inFor && id.type !== Syntax.Identifier) || this.match('=')) {
+        }
+        else if ((!options.inFor && id.type !== Syntax.Identifier) || this.match('=')) {
             this.expect('=');
             init = this.isolateCoverGrammar(this.parseAssignmentExpression);
         }
@@ -2103,11 +2162,13 @@ export class Parser {
             if (this.match(',')) {
                 this.nextToken();
                 elements.push(null);
-            } else {
+            }
+            else {
                 if (this.match('...')) {
                     elements.push(this.parseBindingRestElement(params, kind));
                     break;
-                } else {
+                }
+                else {
                     elements.push(this.parsePatternWithDefault(params, kind));
                 }
                 if (!this.match(']')) {
@@ -2141,15 +2202,18 @@ export class Parser {
                 this.nextToken();
                 const expr = this.parseAssignmentExpression();
                 value = this.finalize(this.startNode(keyToken), new Node.AssignmentPattern(init, expr));
-            } else if (!this.match(':')) {
+            }
+            else if (!this.match(':')) {
                 params.push(keyToken);
                 shorthand = true;
                 value = init;
-            } else {
+            }
+            else {
                 this.expect(':');
                 value = this.parsePatternWithDefault(params, kind);
             }
-        } else {
+        }
+        else {
             computed = this.match('[');
             key = this.parseObjectPropertyKey();
             this.expect(':');
@@ -2193,9 +2257,11 @@ export class Parser {
 
         if (this.match('[')) {
             pattern = this.parseArrayPattern(params, kind);
-        } else if (this.match('{')) {
+        }
+        else if (this.match('{')) {
             pattern = this.parseObjectPattern(params, kind);
-        } else {
+        }
+        else {
             if (this.matchKeyword('let') && (kind === 'const' || kind === 'let')) {
                 this.tolerateUnexpectedToken(this.lookahead, Messages.LetInLexicalBinding);
             }
@@ -2231,18 +2297,22 @@ export class Parser {
         if (token.type === Token.Keyword && token.value === 'yield') {
             if (this.context.strict) {
                 this.tolerateUnexpectedToken(token, Messages.StrictReservedWord);
-            } else if (!this.context.allowYield) {
+            }
+            else if (!this.context.allowYield) {
                 this.throwUnexpectedToken(token);
             }
-        } else if (token.type !== Token.Identifier) {
+        }
+        else if (token.type !== Token.Identifier) {
             if (this.context.strict && token.type === Token.Keyword && this.scanner.isStrictModeReservedWord(token.value as string)) {
                 this.tolerateUnexpectedToken(token, Messages.StrictReservedWord);
-            } else {
+            }
+            else {
                 if (this.context.strict || token.value !== 'let' || kind !== 'var') {
                     this.throwUnexpectedToken(token);
                 }
             }
-        } else if ((this.context.isModule || this.context.isAsync) && token.type === Token.Identifier && token.value === 'await') {
+        }
+        else if ((this.context.isModule || this.context.isAsync) && token.type === Token.Identifier && token.value === 'await') {
             this.tolerateUnexpectedToken(token);
         }
 
@@ -2265,7 +2335,8 @@ export class Parser {
         if (this.match('=')) {
             this.nextToken();
             init = this.isolateCoverGrammar(this.parseAssignmentExpression);
-        } else if (id.type !== Syntax.Identifier && !options.inFor) {
+        }
+        else if (id.type !== Syntax.Identifier && !options.inFor) {
             this.expect('=');
         }
 
@@ -2332,7 +2403,8 @@ export class Parser {
         if (!this.match(')') && this.config.tolerant) {
             this.tolerateUnexpectedToken(this.nextToken());
             consequent = this.finalize(this.createNode(), new Node.EmptyStatement());
-        } else {
+        }
+        else {
             this.expect(')');
             consequent = this.parseIfClause();
             if (this.matchKeyword('else')) {
@@ -2363,7 +2435,8 @@ export class Parser {
 
         if (!this.match(')') && this.config.tolerant) {
             this.tolerateUnexpectedToken(this.nextToken());
-        } else {
+        }
+        else {
             this.expect(')');
             if (this.match(';')) {
                 this.nextToken();
@@ -2386,7 +2459,8 @@ export class Parser {
         if (!this.match(')') && this.config.tolerant) {
             this.tolerateUnexpectedToken(this.nextToken());
             body = this.finalize(this.createNode(), new Node.EmptyStatement());
-        } else {
+        }
+        else {
             this.expect(')');
 
             const previousInIteration = this.context.inIteration;
@@ -2423,7 +2497,8 @@ export class Parser {
 
         if (this.match(';')) {
             this.nextToken();
-        } else {
+        }
+        else {
             if (this.matchKeyword('var')) {
                 init = this.createNode();
                 this.nextToken();
@@ -2443,18 +2518,21 @@ export class Parser {
                     left = init;
                     right = this.parseExpression();
                     init = null;
-                } else if (declarations.length === 1 && declarations[0].init === null && this.matchContextualKeyword('of')) {
+                }
+                else if (declarations.length === 1 && declarations[0].init === null && this.matchContextualKeyword('of')) {
                     init = this.finalize(init, new Node.VariableDeclaration(declarations, 'var'));
                     this.nextToken();
                     left = init;
                     right = this.parseAssignmentExpression();
                     init = null;
                     forIn = false;
-                } else {
+                }
+                else {
                     init = this.finalize(init, new Node.VariableDeclaration(declarations, 'var'));
                     this.expect(';');
                 }
-            } else if (this.matchKeyword('const') || this.matchKeyword('let')) {
+            }
+            else if (this.matchKeyword('const') || this.matchKeyword('let')) {
                 init = this.createNode();
                 const kind = this.nextToken().value as string;
 
@@ -2464,7 +2542,8 @@ export class Parser {
                     left = init;
                     right = this.parseExpression();
                     init = null;
-                } else {
+                }
+                else {
                     const previousAllowIn = this.context.allowIn;
                     this.context.allowIn = false;
                     const declarations = this.parseBindingList(kind, { inFor: true });
@@ -2476,19 +2555,22 @@ export class Parser {
                         left = init;
                         right = this.parseExpression();
                         init = null;
-                    } else if (declarations.length === 1 && declarations[0].init === null && this.matchContextualKeyword('of')) {
+                    }
+                    else if (declarations.length === 1 && declarations[0].init === null && this.matchContextualKeyword('of')) {
                         init = this.finalize(init, new Node.VariableDeclaration(declarations, kind));
                         this.nextToken();
                         left = init;
                         right = this.parseAssignmentExpression();
                         init = null;
                         forIn = false;
-                    } else {
+                    }
+                    else {
                         this.consumeSemicolon();
                         init = this.finalize(init, new Node.VariableDeclaration(declarations, kind));
                     }
                 }
-            } else {
+            }
+            else {
                 const initStartToken = this.lookahead;
                 const previousIsBindingElement = this.context.isBindingElement;
                 const previousIsAssignmentTarget = this.context.isAssignmentTarget;
@@ -2509,7 +2591,8 @@ export class Parser {
                     left = init;
                     right = this.parseExpression();
                     init = null;
-                } else if (this.matchContextualKeyword('of')) {
+                }
+                else if (this.matchContextualKeyword('of')) {
                     if (!this.context.isAssignmentTarget || init.type === Syntax.AssignmentExpression) {
                         this.tolerateError(Messages.InvalidLHSInForLoop);
                     }
@@ -2520,7 +2603,8 @@ export class Parser {
                     right = this.parseAssignmentExpression();
                     init = null;
                     forIn = false;
-                } else {
+                }
+                else {
                     // The `init` node was not parsed isolated, but we would have wanted it to.
                     this.context.isBindingElement = previousIsBindingElement;
                     this.context.isAssignmentTarget = previousIsAssignmentTarget;
@@ -2553,7 +2637,8 @@ export class Parser {
         if (!this.match(')') && this.config.tolerant) {
             this.tolerateUnexpectedToken(this.nextToken());
             body = this.finalize(this.createNode(), new Node.EmptyStatement());
-        } else {
+        }
+        else {
             this.expect(')');
             this.tolerateInvalidLoopStatement();
 
@@ -2657,7 +2742,8 @@ export class Parser {
         if (!this.match(')') && this.config.tolerant) {
             this.tolerateUnexpectedToken(this.nextToken());
             body = this.finalize(this.createNode(), new Node.EmptyStatement());
-        } else {
+        }
+        else {
             this.expect(')');
             body = this.parseStatement();
         }
@@ -2674,7 +2760,8 @@ export class Parser {
         if (this.matchKeyword('default')) {
             this.nextToken();
             test = null;
-        } else {
+        }
+        else {
             this.expectKeyword('case');
             test = this.parseExpression();
         }
@@ -2746,22 +2833,26 @@ export class Parser {
             if (this.matchKeyword('class')) {
                 this.tolerateUnexpectedToken(this.lookahead);
                 body = this.parseClassDeclaration();
-            } else if (this.matchKeyword('function')) {
+            }
+            else if (this.matchKeyword('function')) {
                 const token = this.lookahead;
                 const declaration = this.parseFunctionDeclaration();
                 if (this.context.strict) {
                     this.tolerateUnexpectedToken(token, Messages.StrictFunction);
-                } else if (declaration.generator) {
+                }
+                else if (declaration.generator) {
                     this.tolerateUnexpectedToken(token, Messages.GeneratorInLegacyContext);
                 }
                 body = declaration;
-            } else {
+            }
+            else {
                 body = this.parseStatement();
             }
             delete this.context.labelSet[key];
 
             statement = new Node.LabeledStatement(id, body);
-        } else {
+        }
+        else {
             this.consumeSemicolon();
             statement = new Node.ExpressionStatement(expr);
         }
@@ -2870,11 +2961,14 @@ export class Parser {
                 const value = this.lookahead.value;
                 if (value === '{') {
                     statement = this.parseBlock();
-                } else if (value === '(') {
+                }
+                else if (value === '(') {
                     statement = this.parseExpressionStatement();
-                } else if (value === ';') {
+                }
+                else if (value === ';') {
                     statement = this.parseEmptyStatement();
-                } else {
+                }
+                else {
                     statement = this.parseExpressionStatement();
                 }
                 break;
@@ -2986,14 +3080,17 @@ export class Parser {
                 options.stricted = param;
                 options.hasDuplicateParameterNames = true;
             }
-        } else if (!options.firstRestricted) {
+        }
+        else if (!options.firstRestricted) {
             if (this.scanner.isRestrictedWord(name)) {
                 options.firstRestricted = param;
                 options.message = Messages.StrictParamName;
-            } else if (this.scanner.isStrictModeReservedWord(name)) {
+            }
+            else if (this.scanner.isStrictModeReservedWord(name)) {
                 options.firstRestricted = param;
                 options.message = Messages.StrictReservedWord;
-            } else if (Object.prototype.hasOwnProperty.call(options.paramSet, key)) {
+            }
+            else if (Object.prototype.hasOwnProperty.call(options.paramSet, key)) {
                 options.stricted = param;
                 options.hasDuplicateParameterNames = true;
             }
@@ -3002,7 +3099,8 @@ export class Parser {
         /* istanbul ignore next */
         if (typeof Object.defineProperty === 'function') {
             Object.defineProperty(options.paramSet, key, { value: true, enumerable: true, writable: true, configurable: true });
-        } else {
+        }
+        else {
             options.paramSet[key] = true;
         }
     }
@@ -3114,11 +3212,13 @@ export class Parser {
                 if (this.scanner.isRestrictedWord(token.value as string)) {
                     this.tolerateUnexpectedToken(token, Messages.StrictFunctionName);
                 }
-            } else {
+            }
+            else {
                 if (this.scanner.isRestrictedWord(token.value as string)) {
                     firstRestricted = token;
                     message = Messages.StrictFunctionName;
-                } else if (this.scanner.isStrictModeReservedWord(token.value as string)) {
+                }
+                else if (this.scanner.isStrictModeReservedWord(token.value as string)) {
                     firstRestricted = token;
                     message = Messages.StrictReservedWord;
                 }
@@ -3190,11 +3290,13 @@ export class Parser {
                 if (this.scanner.isRestrictedWord(token.value as string)) {
                     this.tolerateUnexpectedToken(token, Messages.StrictFunctionName);
                 }
-            } else {
+            }
+            else {
                 if (this.scanner.isRestrictedWord(token.value as string)) {
                     firstRestricted = token;
                     message = Messages.StrictFunctionName;
-                } else if (this.scanner.isStrictModeReservedWord(token.value as string)) {
+                }
+                else if (this.scanner.isStrictModeReservedWord(token.value as string)) {
                     firstRestricted = token;
                     message = Messages.StrictReservedWord;
                 }
@@ -3267,7 +3369,8 @@ export class Parser {
                 if (!this.context.allowStrictDirective) {
                     this.tolerateUnexpectedToken(token, Messages.IllegalLanguageModeDirective);
                 }
-            } else {
+            }
+            else {
                 if (!firstRestricted && token.octal) {
                     firstRestricted = token;
                 }
@@ -3321,7 +3424,8 @@ export class Parser {
         const formalParameters = this.parseFormalParameters();
         if (formalParameters.params.length !== 1) {
             this.tolerateError(Messages.BadSetterArity);
-        } else if (formalParameters.params[0] instanceof Node.RestElement) {
+        }
+        else if (formalParameters.params[0] instanceof Node.RestElement) {
             this.tolerateError(Messages.BadSetterRestParameter);
         }
         const method = this.parsePropertyMethod(formalParameters);
@@ -3387,7 +3491,8 @@ export class Parser {
             if (delegate) {
                 this.nextToken();
                 argument = this.parseAssignmentExpression();
-            } else if (this.isStartOfExpression()) {
+            }
+            else if (this.isStartOfExpression()) {
                 argument = this.parseAssignmentExpression();
             }
             this.context.allowYield = previousAllowYield;
@@ -3413,7 +3518,8 @@ export class Parser {
 
         if (this.match('*')) {
             this.nextToken();
-        } else {
+        }
+        else {
             computed = this.match('[');
             key = this.parseObjectPropertyKey();
             const id = key as Node.Identifier;
@@ -3423,7 +3529,8 @@ export class Parser {
                 computed = this.match('[');
                 if (this.match('*')) {
                     this.nextToken();
-                } else {
+                }
+                else {
                     key = this.parseObjectPropertyKey();
                 }
             }
@@ -3453,13 +3560,15 @@ export class Parser {
                 key = this.parseObjectPropertyKey();
                 this.context.allowYield = false;
                 value = this.parseGetterMethod();
-            } else if (token.value === 'set' && lookaheadPropertyKey) {
+            }
+            else if (token.value === 'set' && lookaheadPropertyKey) {
                 kind = 'set';
                 computed = this.match('[');
                 key = this.parseObjectPropertyKey();
                 value = this.parseSetterMethod();
             }
-        } else if (token.type === Token.Punctuator && token.value === '*' && lookaheadPropertyKey) {
+        }
+        else if (token.type === Token.Punctuator && token.value === '*' && lookaheadPropertyKey) {
             kind = 'init';
             computed = this.match('[');
             key = this.parseObjectPropertyKey();
@@ -3494,7 +3603,8 @@ export class Parser {
                 }
                 if (hasConstructor.value) {
                     this.throwUnexpectedToken(token, Messages.DuplicateConstructor);
-                } else {
+                }
+                else {
                     hasConstructor.value = true;
                 }
                 kind = 'constructor';
@@ -3512,7 +3622,8 @@ export class Parser {
         while (!this.match('}')) {
             if (this.match(';')) {
                 this.nextToken();
-            } else {
+            }
+            else {
                 body.push(this.parseClassElement(hasConstructor));
             }
         }
@@ -3616,13 +3727,15 @@ export class Parser {
                 this.nextToken();
                 local = this.parseVariableIdentifier();
             }
-        } else {
+        }
+        else {
             imported = this.parseIdentifierName();
             local = imported;
             if (this.matchContextualKeyword('as')) {
                 this.nextToken();
                 local = this.parseVariableIdentifier();
-            } else {
+            }
+            else {
                 this.throwUnexpectedToken(this.nextToken());
             }
         }
@@ -3679,14 +3792,17 @@ export class Parser {
         if (this.lookahead.type === Token.StringLiteral) {
             // import 'foo';
             src = this.parseModuleSpecifier();
-        } else {
+        }
+        else {
             if (this.match('{')) {
                 // import {bar}
                 specifiers = specifiers.concat(this.parseNamedImports());
-            } else if (this.match('*')) {
+            }
+            else if (this.match('*')) {
                 // import * as foo
                 specifiers.push(this.parseImportNamespaceSpecifier());
-            } else if (this.isIdentifierName(this.lookahead) && !this.matchKeyword('default')) {
+            }
+            else if (this.isIdentifierName(this.lookahead) && !this.matchKeyword('default')) {
                 // import foo
                 specifiers.push(this.parseImportDefaultSpecifier());
                 if (this.match(',')) {
@@ -3694,14 +3810,17 @@ export class Parser {
                     if (this.match('*')) {
                         // import foo, * as foo
                         specifiers.push(this.parseImportNamespaceSpecifier());
-                    } else if (this.match('{')) {
+                    }
+                    else if (this.match('{')) {
                         // import foo, {bar}
                         specifiers = specifiers.concat(this.parseNamedImports());
-                    } else {
+                    }
+                    else {
                         this.throwUnexpectedToken(this.lookahead);
                     }
                 }
-            } else {
+            }
+            else {
                 this.throwUnexpectedToken(this.nextToken());
             }
 
@@ -3749,17 +3868,20 @@ export class Parser {
                 // export default function () {}
                 const declaration = this.parseFunctionDeclaration(true);
                 exportDeclaration = this.finalize(node, new Node.ExportDefaultDeclaration(declaration));
-            } else if (this.matchKeyword('class')) {
+            }
+            else if (this.matchKeyword('class')) {
                 // export default class foo {}
                 const declaration = this.parseClassDeclaration(true);
                 exportDeclaration = this.finalize(node, new Node.ExportDefaultDeclaration(declaration));
-            } else if (this.matchContextualKeyword('async')) {
+            }
+            else if (this.matchContextualKeyword('async')) {
                 // export default async function f () {}
                 // export default async function () {}
                 // export default async x => x
                 const declaration = this.matchAsyncFunction() ? this.parseFunctionDeclaration(true) : this.parseAssignmentExpression();
                 exportDeclaration = this.finalize(node, new Node.ExportDefaultDeclaration(declaration));
-            } else {
+            }
+            else {
                 if (this.matchContextualKeyword('from')) {
                     this.throwError(Messages.UnexpectedToken, this.lookahead.value);
                 }
@@ -3772,7 +3894,8 @@ export class Parser {
                 exportDeclaration = this.finalize(node, new Node.ExportDefaultDeclaration(declaration));
             }
 
-        } else if (this.match('*')) {
+        }
+        else if (this.match('*')) {
             // export * from 'foo';
             this.nextToken();
             if (!this.matchContextualKeyword('from')) {
@@ -3784,7 +3907,8 @@ export class Parser {
             this.consumeSemicolon();
             exportDeclaration = this.finalize(node, new Node.ExportAllDeclaration(src));
 
-        } else if (this.lookahead.type === Token.Keyword) {
+        }
+        else if (this.lookahead.type === Token.Keyword) {
             // export var f = 1;
             let declaration;
             switch (this.lookahead.value) {
@@ -3802,11 +3926,13 @@ export class Parser {
             }
             exportDeclaration = this.finalize(node, new Node.ExportNamedDeclaration(declaration, [], null));
 
-        } else if (this.matchAsyncFunction()) {
+        }
+        else if (this.matchAsyncFunction()) {
             const declaration = this.parseFunctionDeclaration();
             exportDeclaration = this.finalize(node, new Node.ExportNamedDeclaration(declaration, [], null));
 
-        } else {
+        }
+        else {
             const specifiers: Node.ExportSpecifier[] = [];
             let source: Node.Literal | null = null;
             let isExportFromIdentifier = false;
@@ -3827,11 +3953,13 @@ export class Parser {
                 this.nextToken();
                 source = this.parseModuleSpecifier();
                 this.consumeSemicolon();
-            } else if (isExportFromIdentifier) {
+            }
+            else if (isExportFromIdentifier) {
                 // export {default}; // missing fromClause
                 const message = this.lookahead.value ? Messages.UnexpectedToken : Messages.MissingFromClause;
                 this.throwError(message, this.lookahead.value);
-            } else {
+            }
+            else {
                 // export {foo};
                 this.consumeSemicolon();
             }

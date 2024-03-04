@@ -200,7 +200,8 @@ export class Scanner {
                 ++this.lineNumber;
                 ++this.index;
                 this.lineStart = this.index;
-            } else if (ch === 0x2A) {
+            }
+            else if (ch === 0x2A) {
                 // Block comment ends with '*/'.
                 if (this.source.charCodeAt(this.index + 1) === 0x2F) {
                     this.index += 2;
@@ -220,7 +221,8 @@ export class Scanner {
                     return comments;
                 }
                 ++this.index;
-            } else {
+            }
+            else {
                 ++this.index;
             }
         }
@@ -244,8 +246,8 @@ export class Scanner {
         return comments;
     }
 
-    public scanComments() {
-        let comments;
+    public scanComments(): Comment[] | undefined {
+        let comments: Comment[] | undefined;
         if (this.trackComment) {
             comments = [];
         }
@@ -256,7 +258,8 @@ export class Scanner {
 
             if (Character.isWhiteSpace(ch)) {
                 ++this.index;
-            } else if (Character.isLineTerminator(ch)) {
+            }
+            else if (Character.isLineTerminator(ch)) {
                 ++this.index;
                 if (ch === 0x0D && this.source.charCodeAt(this.index) === 0x0A) {
                     ++this.index;
@@ -264,47 +267,55 @@ export class Scanner {
                 ++this.lineNumber;
                 this.lineStart = this.index;
                 start = true;
-            } else if (ch === 0x2F) { // U+002F is '/'
+            }
+            else if (ch === 0x2F) { // U+002F is '/'
                 ch = this.source.charCodeAt(this.index + 1);
                 if (ch === 0x2F) {
                     this.index += 2;
                     const comment = this.skipSingleLineComment(2);
-                    if (this.trackComment) {
+                    if (this.trackComment && Array.isArray(comments)) {
                         comments = comments.concat(comment);
                     }
                     start = true;
-                } else if (ch === 0x2A) {  // U+002A is '*'
+                }
+                else if (ch === 0x2A) {  // U+002A is '*'
                     this.index += 2;
                     const comment = this.skipMultiLineComment();
-                    if (this.trackComment) {
+                    if (this.trackComment && Array.isArray(comments)) {
                         comments = comments.concat(comment);
                     }
-                } else {
+                }
+                else {
                     break;
                 }
-            } else if (start && ch === 0x2D) { // U+002D is '-'
+            }
+            else if (start && ch === 0x2D) { // U+002D is '-'
                 // U+003E is '>'
                 if ((this.source.charCodeAt(this.index + 1) === 0x2D) && (this.source.charCodeAt(this.index + 2) === 0x3E)) {
                     // '-->' is a single-line comment
                     this.index += 3;
                     const comment = this.skipSingleLineComment(3);
-                    if (this.trackComment) {
+                    if (this.trackComment && Array.isArray(comments)) {
                         comments = comments.concat(comment);
                     }
-                } else {
+                }
+                else {
                     break;
                 }
-            } else if (ch === 0x3C && !this.isModule) { // U+003C is '<'
+            }
+            else if (ch === 0x3C && !this.isModule) { // U+003C is '<'
                 if (this.source.slice(this.index + 1, this.index + 4) === '!--') {
                     this.index += 4; // `<!--`
                     const comment = this.skipSingleLineComment(4);
-                    if (this.trackComment) {
+                    if (this.trackComment && Array.isArray(comments)) {
                         comments = comments.concat(comment);
                     }
-                } else {
+                }
+                else {
                     break;
                 }
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -398,7 +409,8 @@ export class Scanner {
         for (let i = 0; i < len; ++i) {
             if (!this.eof() && Character.isHexDigit(this.source.charCodeAt(this.index))) {
                 code = code * 16 + hexValue(this.source[this.index++]);
-            } else {
+            }
+            else {
                 return null;
             }
         }
@@ -445,14 +457,16 @@ export class Scanner {
                 // Blackslash (U+005C) marks Unicode escape sequence.
                 this.index = start;
                 return this.getComplexIdentifier();
-            } else if (ch >= 0xD800 && ch < 0xDFFF) {
+            }
+            else if (ch >= 0xD800 && ch < 0xDFFF) {
                 // Need to handle surrogate pairs.
                 this.index = start;
                 return this.getComplexIdentifier();
             }
             if (Character.isIdentifierPart(ch)) {
                 ++this.index;
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -475,7 +489,8 @@ export class Scanner {
             if (this.source[this.index] === '{') {
                 ++this.index;
                 ch = this.scanUnicodeCodePointEscape();
-            } else {
+            }
+            else {
                 ch = this.scanHexEscape('u');
                 if (ch === null || ch === '\\' || !Character.isIdentifierStart(ch.charCodeAt(0))) {
                     this.throwUnexpectedToken();
@@ -503,7 +518,8 @@ export class Scanner {
                 if (this.source[this.index] === '{') {
                     ++this.index;
                     ch = this.scanUnicodeCodePointEscape();
-                } else {
+                }
+                else {
                     ch = this.scanHexEscape('u');
                     if (ch === null || ch === '\\' || !Character.isIdentifierPart(ch.charCodeAt(0))) {
                         this.throwUnexpectedToken();
@@ -551,13 +567,17 @@ export class Scanner {
         // Thus, it must be an identifier.
         if (id.length === 1) {
             type = Token.Identifier;
-        } else if (this.isKeyword(id)) {
+        }
+        else if (this.isKeyword(id)) {
             type = Token.Keyword;
-        } else if (id === 'null') {
+        }
+        else if (id === 'null') {
             type = Token.NullLiteral;
-        } else if (id === 'true' || id === 'false') {
+        }
+        else if (id === 'true' || id === 'false') {
             type = Token.BooleanLiteral;
-        } else {
+        }
+        else {
             type = Token.Identifier;
         }
 
@@ -637,14 +657,16 @@ export class Scanner {
                 str = this.source.substr(this.index, 4);
                 if (str === '>>>=') {
                     this.index += 4;
-                } else {
+                }
+                else {
 
                     // 3-character punctuators.
                     str = str.substr(0, 3);
                     if (str === '===' || str === '!==' || str === '>>>' ||
                         str === '<<=' || str === '>>=' || str === '**=') {
                         this.index += 3;
-                    } else {
+                    }
+                    else {
 
                         // 2-character punctuators.
                         str = str.substr(0, 2);
@@ -657,7 +679,8 @@ export class Scanner {
                             str === '<=' || str === '>=' || str === '=>' ||
                             str === '**') {
                             this.index += 2;
-                        } else {
+                        }
+                        else {
 
                             // 1-character punctuators.
                             str = this.source[this.index];
@@ -755,7 +778,8 @@ export class Scanner {
         if (Character.isOctalDigit(prefix.charCodeAt(0))) {
             octal = true;
             num = '0' + this.source[this.index++];
-        } else {
+        }
+        else {
             ++this.index;
         }
 
@@ -862,7 +886,8 @@ export class Scanner {
                 while (Character.isDecimalDigit(this.source.charCodeAt(this.index))) {
                     num += this.source[this.index++];
                 }
-            } else {
+            }
+            else {
                 this.throwUnexpectedToken();
             }
         }
@@ -899,7 +924,8 @@ export class Scanner {
             if (ch === quote) {
                 quote = '';
                 break;
-            } else if (ch === '\\') {
+            }
+            else if (ch === '\\') {
                 ch = this.source[this.index++];
                 if (!ch || !Character.isLineTerminator(ch.charCodeAt(0))) {
                     switch (ch) {
@@ -907,7 +933,8 @@ export class Scanner {
                             if (this.source[this.index] === '{') {
                                 ++this.index;
                                 str += this.scanUnicodeCodePointEscape();
-                            } else {
+                            }
+                            else {
                                 const unescapedChar = this.scanHexEscape(ch);
                                 if (unescapedChar === null) {
                                     this.throwUnexpectedToken();
@@ -952,21 +979,25 @@ export class Scanner {
 
                                 octal = octToDec.octal || octal;
                                 str += String.fromCharCode(octToDec.code);
-                            } else {
+                            }
+                            else {
                                 str += ch;
                             }
                             break;
                     }
-                } else {
+                }
+                else {
                     ++this.lineNumber;
                     if (ch === '\r' && this.source[this.index] === '\n') {
                         ++this.index;
                     }
                     this.lineStart = this.index;
                 }
-            } else if (Character.isLineTerminator(ch.charCodeAt(0))) {
+            }
+            else if (Character.isLineTerminator(ch.charCodeAt(0))) {
                 break;
-            } else {
+            }
+            else {
                 str += ch;
             }
         }
@@ -1008,7 +1039,8 @@ export class Scanner {
                 tail = true;
                 terminated = true;
                 break;
-            } else if (ch === '$') {
+            }
+            else if (ch === '$') {
                 if (this.source[this.index] === '{') {
                     this.curlyStack.push('${');
                     ++this.index;
@@ -1016,9 +1048,11 @@ export class Scanner {
                     break;
                 }
                 cooked += ch;
-            } else if (notEscapeSequenceHead !== null) {
+            }
+            else if (notEscapeSequenceHead !== null) {
                 continue;
-            } else if (ch === '\\') {
+            }
+            else if (ch === '\\') {
                 ch = this.source[this.index++];
                 if (!Character.isLineTerminator(ch.charCodeAt(0))) {
                     switch (ch) {
@@ -1037,14 +1071,17 @@ export class Scanner {
                                 const unicodeCodePointEscape = this.tryToScanUnicodeCodePointEscape();
                                 if (unicodeCodePointEscape === null) {
                                     notEscapeSequenceHead = 'u';
-                                } else {
+                                }
+                                else {
                                     cooked += unicodeCodePointEscape;
                                 }
-                            } else {
+                            }
+                            else {
                                 const unescapedChar = this.scanHexEscape(ch);
                                 if (unescapedChar === null) {
                                     notEscapeSequenceHead = 'u';
-                                } else {
+                                }
+                                else {
                                     cooked += unescapedChar;
                                 }
                             }
@@ -1053,7 +1090,8 @@ export class Scanner {
                             const unescaped = this.scanHexEscape(ch);
                             if (unescaped === null) {
                                 notEscapeSequenceHead = 'x';
-                            } else {
+                            }
+                            else {
                                 cooked += unescaped;
                             }
                             break;
@@ -1072,32 +1110,38 @@ export class Scanner {
                                 if (Character.isDecimalDigit(this.source.charCodeAt(this.index))) {
                                     // NotEscapeSequence: \01 \02 and so on
                                     notEscapeSequenceHead = '0';
-                                } else {
+                                }
+                                else {
                                     cooked += '\0';
                                 }
-                            } else if (Character.isDecimalDigitChar(ch)) {
+                            }
+                            else if (Character.isDecimalDigitChar(ch)) {
                                 // NotEscapeSequence: \1 \2
                                 notEscapeSequenceHead = ch;
-                            } else {
+                            }
+                            else {
                                 cooked += ch;
                             }
                             break;
                     }
-                } else {
+                }
+                else {
                     ++this.lineNumber;
                     if (ch === '\r' && this.source[this.index] === '\n') {
                         ++this.index;
                     }
                     this.lineStart = this.index;
                 }
-            } else if (Character.isLineTerminator(ch.charCodeAt(0))) {
+            }
+            else if (Character.isLineTerminator(ch.charCodeAt(0))) {
                 ++this.lineNumber;
                 if (ch === '\r' && this.source[this.index] === '\n') {
                     ++this.index;
                 }
                 this.lineStart = this.index;
                 cooked += '\n';
-            } else {
+            }
+            else {
                 cooked += ch;
             }
         }
@@ -1142,7 +1186,7 @@ export class Scanner {
                 // BMP character or a constant ASCII code point in the case of
                 // astral symbols. (See the above note on `astralSubstitute`
                 // for more information.)
-                .replace(/\\u\{([0-9a-fA-F]+)\}|\\u([a-fA-F0-9]{4})/g, ($0, $1, $2) => {
+                .replace(/\\u\{([0-9a-fA-F]+)\}|\\u([a-fA-F0-9]{4})/g, (_$0, $1, $2) => {
                     const codePoint = parseInt($1 || $2, 16);
                     if (codePoint > 0x10FFFF) {
                         this.throwUnexpectedToken(Messages.InvalidRegExp);
@@ -1197,17 +1241,21 @@ export class Scanner {
                     this.throwUnexpectedToken(Messages.UnterminatedRegExp);
                 }
                 str += ch;
-            } else if (Character.isLineTerminator(ch.charCodeAt(0))) {
+            }
+            else if (Character.isLineTerminator(ch.charCodeAt(0))) {
                 this.throwUnexpectedToken(Messages.UnterminatedRegExp);
-            } else if (classMarker) {
+            }
+            else if (classMarker) {
                 if (ch === ']') {
                     classMarker = false;
                 }
-            } else {
+            }
+            else {
                 if (ch === '/') {
                     terminated = true;
                     break;
-                } else if (ch === '[') {
+                }
+                else if (ch === '[') {
                     classMarker = true;
                 }
             }
@@ -1242,17 +1290,20 @@ export class Scanner {
                         for (str += '\\u'; restore < this.index; ++restore) {
                             str += this.source[restore];
                         }
-                    } else {
+                    }
+                    else {
                         this.index = restore;
                         flags += 'u';
                         str += '\\u';
                     }
                     this.tolerateUnexpectedToken();
-                } else {
+                }
+                else {
                     str += '\\';
                     this.tolerateUnexpectedToken();
                 }
-            } else {
+            }
+            else {
                 flags += ch;
                 str += ch;
             }

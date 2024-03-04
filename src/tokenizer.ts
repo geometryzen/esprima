@@ -1,6 +1,6 @@
 import { ErrorHandler } from './error-handler';
-import { Comment, Scanner, SourceLocation } from './scanner';
-import { RawToken, ReaderEntry, Token, TokenEntry, TokenName } from './token';
+import { Comment, Position, Scanner, SourceLocation } from './scanner';
+import { RawToken, ReaderEntry, Token, TokenName } from './token';
 
 interface BufferEntry {
     type: string;
@@ -128,8 +128,8 @@ export class Tokenizer {
     getNextToken() {
         if (this.buffer.length === 0) {
 
-            const comments: Comment[] = this.scanner.scanComments();
-            if (this.scanner.trackComment) {
+            const comments: Comment[] | undefined = this.scanner.scanComments();
+            if (this.scanner.trackComment && Array.isArray(comments)) {
                 for (let i = 0; i < comments.length; ++i) {
                     const e: Comment = comments[i];
                     const value = this.scanner.source.slice(e.slice[0], e.slice[1]);
@@ -148,7 +148,7 @@ export class Tokenizer {
             }
 
             if (!this.scanner.eof()) {
-                let loc;
+                let loc: SourceLocation | undefined;
 
                 if (this.trackLoc) {
                     loc = {
@@ -156,7 +156,7 @@ export class Tokenizer {
                             line: this.scanner.lineNumber,
                             column: this.scanner.index - this.scanner.lineStart
                         },
-                        end: {}
+                        end: {} as Position
                     };
                 }
 
@@ -183,7 +183,7 @@ export class Tokenizer {
                 if (this.trackRange) {
                     entry.range = [token.start, token.end];
                 }
-                if (this.trackLoc) {
+                if (this.trackLoc && loc) {
                     loc.end = {
                         line: this.scanner.lineNumber,
                         column: this.scanner.index - this.scanner.lineStart

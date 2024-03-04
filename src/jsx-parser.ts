@@ -3,7 +3,7 @@ import * as JSXNode from './jsx-nodes';
 import { JSXSyntax } from './jsx-syntax';
 import * as Node from './nodes';
 import { Marker, Parser } from './parser';
-import { Token, TokenName } from './token';
+import { RawToken, Token } from './token';
 import { XHTMLEntities } from './xhtml-entities';
 
 interface MetaJSXElement {
@@ -12,23 +12,6 @@ interface MetaJSXElement {
     closing: JSXNode.JSXClosingElement | JSXNode.JSXClosingFragment | null;
     children: JSXNode.JSXChild[];
 }
-
-const enum JSXToken {
-    Identifier = 100,
-    Text
-}
-
-interface RawJSXToken {
-    type: Token | JSXToken;
-    value: string;
-    lineNumber: number;
-    lineStart: number;
-    start: number;
-    end: number;
-}
-
-TokenName[JSXToken.Identifier] = 'JSXIdentifier';
-TokenName[JSXToken.Text] = 'JSXText';
 
 // Fully qualified element name, e.g. <svg:path> returns "svg:path"
 function getQualifiedElementName(elementName: JSXNode.JSXElementName): string {
@@ -149,9 +132,11 @@ export class JSXParser extends Parser {
             const str = result.substr(1, result.length - 2);
             if (numeric && str.length > 1) {
                 result = String.fromCharCode(parseInt(str.substr(1), 10));
-            } else if (hex && str.length > 2) {
+            }
+            else if (hex && str.length > 2) {
                 result = String.fromCharCode(parseInt('0' + str.substr(1), 16));
-            } else if (!numeric && !hex && XHTMLEntities[str]) {
+            }
+            else if (!numeric && !hex && XHTMLEntities[str]) {
                 result = XHTMLEntities[str];
             }
         }
@@ -161,7 +146,7 @@ export class JSXParser extends Parser {
 
     // Scan the next JSX token. This replaces Scanner#lex when in JSX mode.
 
-    lexJSX(): RawJSXToken {
+    lexJSX(): RawToken {
         const cp = this.scanner.source.charCodeAt(this.scanner.index);
 
         // < > / : = { }
@@ -186,9 +171,11 @@ export class JSXParser extends Parser {
                 const ch = this.scanner.source[this.scanner.index++];
                 if (ch === quote) {
                     break;
-                } else if (ch === '&') {
+                }
+                else if (ch === '&') {
                     str += this.scanXHTMLEntity(quote);
-                } else {
+                }
+                else {
                     str += ch;
                 }
             }
@@ -241,16 +228,18 @@ export class JSXParser extends Parser {
                 const ch = this.scanner.source.charCodeAt(this.scanner.index);
                 if (Character.isIdentifierPart(ch) && (ch !== 92)) {
                     ++this.scanner.index;
-                } else if (ch === 45) {
+                }
+                else if (ch === 45) {
                     // Hyphen (char code 45) can be part of an identifier.
                     ++this.scanner.index;
-                } else {
+                }
+                else {
                     break;
                 }
             }
             const id = this.scanner.source.slice(start, this.scanner.index);
             return {
-                type: JSXToken.Identifier,
+                type: Token.JSXIdentifier,
                 value: id,
                 lineNumber: this.scanner.lineNumber,
                 lineStart: this.scanner.lineStart,
@@ -259,10 +248,10 @@ export class JSXParser extends Parser {
             };
         }
 
-        return this.scanner.lex() as RawJSXToken;
+        return this.scanner.lex();
     }
 
-    nextJSXToken(): RawJSXToken {
+    nextJSXToken(): RawToken {
         this.collectComments();
 
         this.startMarker.index = this.scanner.index;
@@ -280,7 +269,7 @@ export class JSXParser extends Parser {
         return token;
     }
 
-    nextJSXText(): RawJSXToken {
+    nextJSXText(): RawToken {
         this.startMarker.index = this.scanner.index;
         this.startMarker.line = this.scanner.lineNumber;
         this.startMarker.column = this.scanner.index - this.scanner.lineStart;
@@ -309,7 +298,7 @@ export class JSXParser extends Parser {
         this.lastMarker.column = this.scanner.index - this.scanner.lineStart;
 
         const token = {
-            type: JSXToken.Text,
+            type: Token.JSXText,
             value: text,
             lineNumber: this.scanner.lineNumber,
             lineStart: this.scanner.lineStart,
@@ -324,7 +313,7 @@ export class JSXParser extends Parser {
         return token;
     }
 
-    peekJSXToken(): RawJSXToken {
+    peekJSXToken(): RawToken {
         const state = this.scanner.saveState();
         this.scanner.scanComments();
         const next = this.lexJSX();
@@ -353,10 +342,10 @@ export class JSXParser extends Parser {
     parseJSXIdentifier(): JSXNode.JSXIdentifier {
         const node = this.createJSXNode();
         const token = this.nextJSXToken();
-        if (token.type !== JSXToken.Identifier) {
+        if (token.type !== Token.JSXIdentifier) {
             this.throwUnexpectedToken(token);
         }
-        return this.finalize(node, new JSXNode.JSXIdentifier(token.value));
+        return this.finalize(node, new JSXNode.JSXIdentifier(token.value as string));
     }
 
     parseJSXElementName(): JSXNode.JSXElementName {
@@ -368,7 +357,8 @@ export class JSXParser extends Parser {
             this.expectJSX(':');
             const name = this.parseJSXIdentifier();
             elementName = this.finalize(node, new JSXNode.JSXNamespacedName(namespace, name));
-        } else if (this.matchJSX('.')) {
+        }
+        else if (this.matchJSX('.')) {
             while (this.matchJSX('.')) {
                 const object = elementName;
                 this.expectJSX('.');
@@ -390,7 +380,8 @@ export class JSXParser extends Parser {
             this.expectJSX(':');
             const name = this.parseJSXIdentifier();
             attributeName = this.finalize(node, new JSXNode.JSXNamespacedName(namespace, name));
-        } else {
+        }
+        else {
             attributeName = identifier;
         }
 
@@ -526,7 +517,8 @@ export class JSXParser extends Parser {
         if (this.matchJSX('}')) {
             expression = this.parseJSXEmptyExpression();
             this.expectJSX('}');
-        } else {
+        }
+        else {
             this.finishJSX();
             expression = this.parseAssignmentExpression();
             this.reenterJSX();
@@ -543,13 +535,14 @@ export class JSXParser extends Parser {
             const token = this.nextJSXText();
             if (token.start < token.end) {
                 const raw = this.getTokenRaw(token);
-                const child = this.finalize(node, new JSXNode.JSXText(token.value, raw));
+                const child = this.finalize(node, new JSXNode.JSXText(token.value as string, raw));
                 children.push(child);
             }
             if (this.scanner.source[this.scanner.index] === '{') {
                 const container = this.parseJSXExpressionContainer();
                 children.push(container);
-            } else {
+            }
+            else {
                 break;
             }
         }
@@ -569,7 +562,8 @@ export class JSXParser extends Parser {
                 if (opening.selfClosing) {
                     const child = this.finalize(node, new JSXNode.JSXElement(opening, [], null));
                     el.children.push(child);
-                } else {
+                }
+                else {
                     stack.push(el);
                     el = { node, opening, closing: null, children: [] };
                 }
@@ -586,7 +580,8 @@ export class JSXParser extends Parser {
                     el = stack[stack.length - 1];
                     el.children.push(child);
                     stack.pop();
-                } else {
+                }
+                else {
                     break;
                 }
             }
@@ -594,7 +589,8 @@ export class JSXParser extends Parser {
                 el.closing = element as JSXNode.JSXClosingFragment;
                 if (el.opening.type !== JSXSyntax.JSXOpeningFragment) {
                     this.tolerateError('Expected corresponding JSX closing tag for jsx fragment');
-                } else {
+                }
+                else {
                     break;
                 }
             }
