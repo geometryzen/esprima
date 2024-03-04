@@ -118,7 +118,8 @@ export class Scanner {
 
     private skipSingleLineComment(offset: number): Comment[] {
         let comments: Comment[] = [];
-        let start, loc;
+        let start: number | undefined;
+        let loc: SourceLocation | undefined;
 
         if (this.trackComment) {
             comments = [];
@@ -128,7 +129,7 @@ export class Scanner {
                     line: this.lineNumber,
                     column: this.index - this.lineStart - offset
                 },
-                end: {}
+                end: {} as Position
             };
         }
 
@@ -136,15 +137,15 @@ export class Scanner {
             const ch = this.source.charCodeAt(this.index);
             ++this.index;
             if (Character.isLineTerminator(ch)) {
-                if (this.trackComment) {
+                if (this.trackComment && loc) {
                     loc.end = {
                         line: this.lineNumber,
                         column: this.index - this.lineStart - 1
                     };
                     const entry: Comment = {
                         multiLine: false,
-                        slice: [start + offset, this.index - 1],
-                        range: [start, this.index - 1],
+                        slice: [start as number + offset, this.index - 1],
+                        range: [start as number, this.index - 1],
                         loc: loc
                     };
                     comments.push(entry);
@@ -158,15 +159,15 @@ export class Scanner {
             }
         }
 
-        if (this.trackComment) {
+        if (this.trackComment && loc) {
             loc.end = {
                 line: this.lineNumber,
                 column: this.index - this.lineStart
             };
             const entry: Comment = {
                 multiLine: false,
-                slice: [start + offset, this.index],
-                range: [start, this.index],
+                slice: [start as number + offset, this.index],
+                range: [start as number, this.index],
                 loc: loc
             };
             comments.push(entry);
@@ -177,7 +178,8 @@ export class Scanner {
 
     private skipMultiLineComment(): Comment[] {
         let comments: Comment[] = [];
-        let start, loc;
+        let start: number | undefined;
+        let loc: SourceLocation | undefined;
 
         if (this.trackComment) {
             comments = [];
@@ -187,7 +189,7 @@ export class Scanner {
                     line: this.lineNumber,
                     column: this.index - this.lineStart - 2
                 },
-                end: {}
+                end: {} as Position
             };
         }
 
@@ -205,15 +207,15 @@ export class Scanner {
                 // Block comment ends with '*/'.
                 if (this.source.charCodeAt(this.index + 1) === 0x2F) {
                     this.index += 2;
-                    if (this.trackComment) {
+                    if (this.trackComment && loc) {
                         loc.end = {
                             line: this.lineNumber,
                             column: this.index - this.lineStart
                         };
                         const entry: Comment = {
                             multiLine: true,
-                            slice: [start + 2, this.index - 2],
-                            range: [start, this.index],
+                            slice: [start as number + 2, this.index - 2],
+                            range: [start as number, this.index],
                             loc: loc
                         };
                         comments.push(entry);
@@ -228,15 +230,15 @@ export class Scanner {
         }
 
         // Ran off the end of the file - the whole thing is a comment
-        if (this.trackComment) {
+        if (this.trackComment && loc) {
             loc.end = {
                 line: this.lineNumber,
                 column: this.index - this.lineStart
             };
             const entry: Comment = {
                 multiLine: true,
-                slice: [start + 2, this.index],
-                range: [start, this.index],
+                slice: [start as number + 2, this.index],
+                range: [start as number, this.index],
                 loc: loc
             };
             comments.push(entry);
