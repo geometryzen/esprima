@@ -4,7 +4,7 @@ import { Messages } from './messages';
 import * as Node from './nodes';
 import { Comment, RawToken, Scanner, SourceLocation } from './scanner';
 import { Syntax } from './syntax';
-import { Token, TokenName } from './token';
+import { assert_raw_token_value, as_string, Token, TokenName } from './token';
 
 interface Config {
     range: boolean;
@@ -36,6 +36,19 @@ export interface Marker {
     index: number;
     line: number;
     column: number;
+}
+
+export interface MetaData {
+    start: {
+        line: number;
+        column: number;
+        offset: number;
+    };
+    end: {
+        line: number;
+        column: number;
+        offset: number;
+    };
 }
 
 const ArrowParameterPlaceHolder = 'ArrowParameterPlaceHolder';
@@ -559,7 +572,7 @@ export class Parser {
     // the flags outside of the parser. This means the production the parser parses is used as a part of a potential
     // pattern. The CoverInitializedName check is deferred.
 
-    isolateCoverGrammar(parseFunction) {
+    isolateCoverGrammar<T>(parseFunction: (this: Parser) => T) {
         const previousIsBindingElement = this.context.isBindingElement;
         const previousIsAssignmentTarget = this.context.isAssignmentTarget;
         const previousFirstCoverInitializedNameError = this.context.firstCoverInitializedNameError;
@@ -580,7 +593,7 @@ export class Parser {
         return result;
     }
 
-    inheritCoverGrammar(parseFunction) {
+    inheritCoverGrammar<T>(parseFunction: (this: Parser) => T): T {
         const previousIsBindingElement = this.context.isBindingElement;
         const previousIsAssignmentTarget = this.context.isAssignmentTarget;
         const previousFirstCoverInitializedNameError = this.context.firstCoverInitializedNameError;
@@ -832,7 +845,7 @@ export class Parser {
 
             case Token.Punctuator:
                 if (token.value === '[') {
-                    key = this.isolateCoverGrammar(this.parseAssignmentExpression);
+                    key = this.isolateCoverGrammar(this.parseAssignmentExpression) as Node.PropertyKey;
                     this.expect(']');
                 } else {
                     key = this.throwUnexpectedToken(token);
@@ -851,13 +864,13 @@ export class Parser {
             (key.type === Syntax.Literal && key.value === value);
     }
 
-    parseObjectProperty(hasProto): Node.Property {
+    parseObjectProperty(hasProto: { value: boolean }): Node.Property {
         const node = this.createNode();
         const token = this.lookahead;
 
         let kind: string;
         let key: Node.PropertyKey | null = null;
-        let value: Node.PropertyValue | null = null;
+        let value: Node.PropertyValue | Node.Expression | null = null;
 
         let computed = false;
         let method = false;
@@ -941,7 +954,7 @@ export class Parser {
             }
         }
 
-        return this.finalize(node, new Node.Property(kind, key as Node.PropertyKey, computed, value, method, shorthand));
+        return this.finalize(node, new Node.Property(kind, key as Node.PropertyKey, computed, value as Node.PropertyValue, method, shorthand));
     }
 
     parseObjectInitializer(): Node.ObjectExpression {
@@ -1492,7 +1505,7 @@ export class Parser {
             }
         }
         if (hasOptional) {
-            return new Node.ChainExpression(expr);
+            return new Node.ChainExpression(expr as Node.ChainElement);
         }
 
         return expr;
@@ -1654,14 +1667,14 @@ export class Parser {
 
                 // Reduce: make a binary expression from the three topmost entries.
                 while ((stack.length > 2) && (prec <= precedences[precedences.length - 1])) {
-                    right = stack.pop();
-                    const operator = stack.pop();
+                    right = stack.pop() as Node.Expression;
+                    const operator = assert_raw_token_value(stack.pop());
                     precedences.pop();
-                    left = stack.pop();
+                    left = stack.pop() as Node.Expression;
                     markers.pop();
                     const marker = markers[markers.length - 1];
                     const node = this.startNode(marker, marker.lineStart);
-                    stack.push(this.finalize(node, new Node.BinaryExpression(operator, left, right)));
+                    stack.push(this.finalize(node, new Node.BinaryExpression(as_string(operator), left, right)));
                 }
 
                 // Shift.
@@ -1673,15 +1686,15 @@ export class Parser {
 
             // Final reduce to clean-up the stack.
             let i = stack.length - 1;
-            expr = stack[i];
+            expr = stack[i] as Node.Expression;
 
             let lastMarker = markers.pop();
             while (i > 1) {
                 const marker = markers.pop();
                 const lastLineStart = lastMarker && lastMarker.lineStart;
                 const node = this.startNode(marker, lastLineStart);
-                const operator = stack[i - 1];
-                expr = this.finalize(node, new Node.BinaryExpression(operator, stack[i - 2], expr));
+                const operator = assert_raw_token_value(stack[i - 1]);
+                expr = this.finalize(node, new Node.BinaryExpression(as_string(operator), stack[i - 2] as Node.Expression, expr));
                 i -= 2;
                 lastMarker = marker;
             }
@@ -2248,7 +2261,7 @@ export class Parser {
             }
         }
 
-        let init = null;
+        let init: Node.Expression | null = null;
         if (this.match('=')) {
             this.nextToken();
             init = this.isolateCoverGrammar(this.parseAssignmentExpression);
@@ -3526,7 +3539,7 @@ export class Parser {
         let superClass: Node.Identifier | null = null;
         if (this.matchKeyword('extends')) {
             this.nextToken();
-            superClass = this.isolateCoverGrammar(this.parseLeftHandSideExpressionAllowCall);
+            superClass = this.isolateCoverGrammar(this.parseLeftHandSideExpressionAllowCall) as Node.Identifier;
         }
         const classBody = this.parseClassBody();
         this.context.strict = previousStrict;
@@ -3544,7 +3557,7 @@ export class Parser {
         let superClass: Node.Identifier | null = null;
         if (this.matchKeyword('extends')) {
             this.nextToken();
-            superClass = this.isolateCoverGrammar(this.parseLeftHandSideExpressionAllowCall);
+            superClass = this.isolateCoverGrammar(this.parseLeftHandSideExpressionAllowCall) as Node.Identifier;
         }
         const classBody = this.parseClassBody();
         this.context.strict = previousStrict;

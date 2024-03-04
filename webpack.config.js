@@ -1,8 +1,11 @@
+const path = require('path');
+
 module.exports = {
-    entry:  __dirname + "/src/esprima.js",
+    mode: 'development',
+    entry:  __dirname + "/src/index.js",
     output: {
-        path:  __dirname + "/dist",
-        filename: "esprima.js",
+        path:  path.resolve(__dirname + "/dist/commonjs"),
+        filename: "index.js",
         libraryTarget: "umd",
         library: "esprima"
     }

@@ -24,8 +24,25 @@
 
 import { CommentHandler } from './comment-handler';
 import { JSXParser } from './jsx-parser';
-import { Parser } from './parser';
+import { MetaData, Parser } from './parser';
 import { Tokenizer } from './tokenizer';
+
+export interface ParseOptions {
+    comment?: boolean;
+    attachComment?: boolean;
+    sourceType?: 'module' | 'script';
+    jsx?: boolean;
+    range?: boolean;
+    loc?: boolean;
+    tokens?: boolean;
+    tolerant?: boolean;
+    source?: string;
+}
+
+/**
+ *
+ */
+export type ParseDelegate = (node: Node, metadata: MetaData) => void;
 
 export function parse(code: string, options, delegate) {
     let commentHandler: CommentHandler | null = null;
@@ -118,7 +135,5 @@ export function tokenize(code: string, options, delegate) {
     return tokens;
 }
 
-export { Syntax } from './syntax';
-
 // Sync with *.json manifests.
-export const version = '4.0.0-dev';
+export const version = '0.9.9';

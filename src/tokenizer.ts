@@ -1,8 +1,6 @@
 import { ErrorHandler } from './error-handler';
-import { Comment, RawToken, Scanner, SourceLocation } from './scanner';
-import { Token, TokenName } from './token';
-
-type ReaderEntry = string | null;
+import { Comment, Scanner, SourceLocation } from './scanner';
+import { RawToken, ReaderEntry, Token, TokenEntry, TokenName } from './token';
 
 interface BufferEntry {
     type: string;
@@ -62,11 +60,12 @@ class Reader {
                 if (this.values[this.curly - 3] === 'function') {
                     // Anonymous function, e.g. function(){} /42
                     const check = this.values[this.curly - 4];
-                    regex = check ? !this.beforeFunctionExpression(check) : false;
-                } else if (this.values[this.curly - 4] === 'function') {
+                    regex = check ? !this.beforeFunctionExpression(check as string) : false;
+                }
+                else if (this.values[this.curly - 4] === 'function') {
                     // Named function, e.g. function f(){} /42/
                     const check = this.values[this.curly - 5];
-                    regex = check ? !this.beforeFunctionExpression(check) : true;
+                    regex = check ? !this.beforeFunctionExpression(check as string) : true;
                 }
                 break;
             default:
@@ -80,18 +79,21 @@ class Reader {
         if (token.type === Token.Punctuator || token.type === Token.Keyword) {
             if (token.value === '{') {
                 this.curly = this.values.length;
-            } else if (token.value === '(') {
+            }
+            else if (token.value === '(') {
                 this.paren = this.values.length;
             }
             this.values.push(token.value);
-        } else {
+        }
+        else {
             this.values.push(null);
         }
     }
 
 }
 
-interface Config {
+
+export interface TokenizerConfig {
     tolerant?: boolean;
     comment?: boolean;
     range?: boolean;
@@ -106,7 +108,7 @@ export class Tokenizer {
     readonly buffer: BufferEntry[];
     readonly reader: Reader;
 
-    constructor(code: string, config: Config) {
+    constructor(code: string, config: TokenizerConfig) {
         this.errorHandler = new ErrorHandler();
         this.errorHandler.tolerant = config ? (typeof config.tolerant === 'boolean' && config.tolerant) : false;
 
@@ -168,7 +170,8 @@ export class Tokenizer {
                         this.scanner.restoreState(state);
                         token = this.scanner.lex();
                     }
-                } else {
+                }
+                else {
                     token = this.scanner.lex();
                 }
 
