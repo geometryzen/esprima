@@ -32,6 +32,16 @@ interface Context {
     strict: boolean;
 }
 
+interface FormalParameters {
+    firstRestricted?: RawToken;
+    hasDuplicateParameterNames?: boolean;
+    simple: boolean;
+    params: Node.FunctionParameter[];
+    paramSet?: { [key: string]: boolean };
+    stricted?: RawToken;
+    message?: string;
+}
+
 export interface Marker {
     index: number;
     line: number;
@@ -3120,18 +3130,18 @@ export class Parser {
         return this.finalize(node, new Node.RestElement(arg));
     }
 
-    parseFormalParameter(options) {
-        const params: any[] = [];
+    parseFormalParameter(options: FormalParameters): void {
+        const params: RawToken[] = [];
         const param = this.match('...') ? this.parseRestElement(params) : this.parsePatternWithDefault(params);
         for (let i = 0; i < params.length; i++) {
             this.validateParam(options, params[i], params[i].value);
         }
         options.simple = options.simple && (param instanceof Node.Identifier);
-        options.params.push(param);
+        options.params.push(param as Node.FunctionParameter);
     }
 
-    parseFormalParameters(firstRestricted?) {
-        const options: any = {
+    parseFormalParameters(firstRestricted?: RawToken): FormalParameters {
+        const options: FormalParameters = {
             simple: true,
             hasDuplicateParameterNames: false,
             params: [],
@@ -3201,9 +3211,9 @@ export class Parser {
             this.nextToken();
         }
 
-        let message;
+        let message: string|undefined;
         let id: Node.Identifier | null = null;
-        let firstRestricted: RawToken | null = null;
+        let firstRestricted: RawToken | undefined;
 
         if (!identifierIsOptional || !this.match('(')) {
             const token = this.lookahead;
