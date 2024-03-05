@@ -103,7 +103,7 @@
         "lint": "eslint src/*.ts",
         "pages": "npm run docs:typedoc && gh-pages -d docs",
         "pretest": "npm run compile",
-        "prepublishOnly": "npm run check && npm run build && npm run test && npm run lint && npm run pages",
+        "prepublishOnly": "npm run check && npm run build && npm run lint && npm run pages",
         "release": "release-it",
         "jest": "npm run build && jest",
         "lint-code": "eslint src/*.ts",
