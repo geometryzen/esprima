@@ -3,6 +3,9 @@
     "version": "0.9.9",
     "description": "ECMAScript parsing infrastructure for multipurpose analysis",
     "homepage": "http://esprima.org",
+    "publishConfig": {
+        "access": "public"
+    },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -38,14 +41,19 @@
             "name": "Ariya Hidayat",
             "email": "ariya.hidayat@gmail.com",
             "web": "http://ariya.ofilabs.com"
+        },
+        {
+            "name": "David Holmes",
+            "email": "david.geo.holmes@gmail.com",
+            "web": "https://stemcstudio.com"
         }
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/jquery/esprima.git"
+        "url": "https://github.com/geometryzen/esprima.git"
     },
     "bugs": {
-        "url": "https://github.com/jquery/esprima/issues"
+        "url": "https://github.com/geometryzen/esprima/issues"
     },
     "license": "BSD-2-Clause",
     "devDependencies": {
