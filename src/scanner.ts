@@ -33,9 +33,11 @@ export interface Comment {
 // See: https://tc39.es/ecma262/#prod-NotEscapeSequence
 type NotEscapeSequenceHead = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'x' | 'u';
 
+export type RawTokenValue = string | number;
+
 export interface RawToken {
     type: Token;
-    value: string | number;
+    value: RawTokenValue;
     pattern?: string;
     flags?: string;
     regex?: RegExp | null;
@@ -482,7 +484,7 @@ export class Scanner {
         this.index += id.length;
 
         // '\u' (U+005C, U+0075) denotes an escaped character.
-        let ch;
+        let ch: string | null;
         if (cp === 0x5C) {
             if (this.source.charCodeAt(this.index) !== 0x75) {
                 this.throwUnexpectedToken();
@@ -740,7 +742,7 @@ export class Scanner {
 
     private scanBinaryLiteral(start: number): RawToken {
         let num = '';
-        let ch;
+        let ch: string;
 
         while (!this.eof()) {
             ch = this.source[this.index];
@@ -756,7 +758,7 @@ export class Scanner {
         }
 
         if (!this.eof()) {
-            ch = this.source.charCodeAt(this.index);
+            const ch = this.source.charCodeAt(this.index);
             /* istanbul ignore else */
             if (Character.isIdentifierStart(ch) || Character.isDecimalDigit(ch)) {
                 this.throwUnexpectedToken();
@@ -1189,7 +1191,7 @@ export class Scanner {
                 // astral symbols. (See the above note on `astralSubstitute`
                 // for more information.)
                 .replace(/\\u\{([0-9a-fA-F]+)\}|\\u([a-fA-F0-9]{4})/g, (_$0, $1, $2) => {
-                    const codePoint = parseInt($1 || $2, 16);
+                    const codePoint = parseInt($1 as string || $2 as string, 16);
                     if (codePoint > 0x10FFFF) {
                         this.throwUnexpectedToken(Messages.InvalidRegExp);
                     }

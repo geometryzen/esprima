@@ -76,7 +76,7 @@ class Reader {
         return regex;
     }
 
-    push(token): void {
+    push(token: RawToken): void {
         if (token.type === Token.Punctuator || token.type === Token.Keyword) {
             if (token.value === '{') {
                 this.curly = this.values.length;

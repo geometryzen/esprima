@@ -21,9 +21,9 @@ export class ErrorHandler {
         this.errors.push(error);
     }
 
-    tolerate(error): void {
+    tolerate(error: unknown): void {
         if (this.tolerant) {
-            this.recordError(error);
+            this.recordError(error as Error);
         } else {
             throw error;
         }
@@ -36,6 +36,7 @@ export class ErrorHandler {
         } catch (base) {
             /* istanbul ignore else */
             if (Object.create && Object.defineProperty) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 error = Object.create(base as Error);
                 Object.defineProperty(error, 'column', { value: column });
             }

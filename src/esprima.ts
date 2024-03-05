@@ -23,6 +23,7 @@
 */
 
 import { CommentHandler } from './comment-handler';
+import { Node } from './javascript';
 import { JSXParser } from './jsx-parser';
 import { Module, Program, Script } from './nodes';
 import { MetaData, Parser } from './parser';
@@ -57,7 +58,7 @@ export function parse(sourceText: string, options?: ParseOptions, delegate?: Par
         }
     };
 
-    let parserDelegate = (typeof delegate === 'function') ? proxyDelegate : null;
+    let parserDelegate = (typeof delegate === 'function') ? proxyDelegate : undefined;
     let collectComment = false;
     if (options) {
         collectComment = (typeof options.comment === 'boolean' && options.comment);
@@ -84,19 +85,18 @@ export function parse(sourceText: string, options?: ParseOptions, delegate?: Par
     }
 
     const program = isModule ? parser.parseModule() : parser.parseScript();
-    const ast = program as any;
 
     if (collectComment && commentHandler) {
-        ast.comments = commentHandler.comments;
+        program.comments = commentHandler.comments;
     }
     if (parser.config.tokens) {
-        ast.tokens = parser.tokens;
+        program.tokens = parser.tokens;
     }
     if (parser.config.tolerant) {
-        ast.errors = parser.errorHandler.errors;
+        program.errors = parser.errorHandler.errors;
     }
 
-    return ast;
+    return program;
 }
 
 export function parseModule(sourceText: string, options: ParseOptions = {}, delegate?: ParseDelegate): Module {
@@ -133,7 +133,8 @@ export function tokenize(code: string, options: TokenizerConfig, delegate?: (tok
     }
 
     if (tokenizer.errorHandler.tolerant) {
-        tokens['errors'] = tokenizer.errors();
+        // Yeah, this is ugly.
+        (tokens as unknown as { [name: string]: Error[] })['errors'] = tokenizer.errors();
     }
 
     return tokens;

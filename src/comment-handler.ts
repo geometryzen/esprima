@@ -1,12 +1,6 @@
-import { SourceLocation } from './scanner';
-import { Syntax } from './syntax';
-
-interface Comment {
-    type: string;
-    value: string;
-    range?: [number, number];
-    loc?: SourceLocation;
-}
+import { Comment, Node } from './javascript';
+import { is_block_statement, is_program } from './nodes';
+import { BlockComment, is_block_comment, is_line_comment, LineComment, MetaData } from './parser';
 
 interface Entry {
     comment: Comment;
@@ -14,7 +8,7 @@ interface Entry {
 }
 
 interface NodeInfo {
-    node: any;
+    node: Node;
     start: number;
 }
 
@@ -33,10 +27,10 @@ export class CommentHandler {
         this.trailing = [];
     }
 
-    insertInnerComments(node, metadata) {
+    insertInnerComments(node: Node, metadata: MetaData): void {
         //  innnerComments for properties empty block
         //  `function a() {/** comments **\/}`
-        if (node.type === Syntax.BlockStatement && node.body.length === 0) {
+        if (is_block_statement(node) && node.body.length === 0) {
             const innerComments: Comment[] = [];
             for (let i = this.leading.length - 1; i >= 0; --i) {
                 const entry = this.leading[i];
@@ -52,7 +46,7 @@ export class CommentHandler {
         }
     }
 
-    findTrailingComments(metadata) {
+    findTrailingComments(metadata: MetaData): Comment[] {
         let trailingComments: Comment[] = [];
 
         if (this.trailing.length > 0) {
@@ -69,7 +63,7 @@ export class CommentHandler {
         const last = this.stack[this.stack.length - 1];
         if (last && last.node.trailingComments) {
             const firstComment = last.node.trailingComments[0];
-            if (firstComment && firstComment.range[0] >= metadata.end.offset) {
+            if (firstComment && Array.isArray(firstComment.range) && firstComment.range[0] >= metadata.end.offset) {
                 trailingComments = last.node.trailingComments;
                 delete last.node.trailingComments;
             }
@@ -77,10 +71,10 @@ export class CommentHandler {
         return trailingComments;
     }
 
-    findLeadingComments(metadata) {
+    findLeadingComments(metadata: MetaData): Comment[] | undefined {
         const leadingComments: Comment[] = [];
 
-        let target;
+        let target: Node | undefined;
         while (this.stack.length > 0) {
             const entry = this.stack[this.stack.length - 1];
             if (entry && entry.start >= metadata.start.offset) {
@@ -92,12 +86,14 @@ export class CommentHandler {
         }
 
         if (target) {
-            const count = target.leadingComments ? target.leadingComments.length : 0;
-            for (let i = count - 1; i >= 0; --i) {
-                const comment = target.leadingComments[i];
-                if (comment.range[1] <= metadata.start.offset) {
-                    leadingComments.unshift(comment);
-                    target.leadingComments.splice(i, 1);
+            if (target.leadingComments) {
+                const count = target.leadingComments ? target.leadingComments.length : 0;
+                for (let i = count - 1; i >= 0; --i) {
+                    const comment = target.leadingComments[i];
+                    if (Array.isArray(comment.range) && comment.range[1] <= metadata.start.offset) {
+                        leadingComments.unshift(comment);
+                        target.leadingComments.splice(i, 1);
+                    }
                 }
             }
             if (target.leadingComments && target.leadingComments.length === 0) {
@@ -116,15 +112,15 @@ export class CommentHandler {
         return leadingComments;
     }
 
-    visitNode(node, metadata) {
-        if (node.type === Syntax.Program && node.body.length > 0) {
+    visitNode(node: Node, metadata: MetaData): void {
+        if (is_program(node) && node.body.length > 0) {
             return;
         }
 
         this.insertInnerComments(node, metadata);
         const trailingComments = this.findTrailingComments(metadata);
         const leadingComments = this.findLeadingComments(metadata);
-        if (leadingComments.length > 0) {
+        if (Array.isArray(leadingComments) && leadingComments.length > 0) {
             node.leadingComments = leadingComments;
         }
         if (trailingComments.length > 0) {
@@ -137,8 +133,8 @@ export class CommentHandler {
         });
     }
 
-    visitComment(node, metadata) {
-        const type = (node.type[0] === 'L') ? 'Line' : 'Block';
+    visitComment(node: LineComment | BlockComment, metadata: MetaData): void {
+        const type = is_line_comment(node) ? 'Line' : 'Block';
         const comment: Comment = {
             type: type,
             value: node.value
@@ -163,18 +159,19 @@ export class CommentHandler {
             if (node.loc) {
                 entry.comment.loc = node.loc;
             }
-            node.type = type;
             this.leading.push(entry);
             this.trailing.push(entry);
         }
     }
 
-    visit(node, metadata) {
-        if (node.type === 'LineComment') {
+    visit(node: Node, metadata: MetaData): void {
+        if (is_line_comment(node)) {
             this.visitComment(node, metadata);
-        } else if (node.type === 'BlockComment') {
+        }
+        else if (is_block_comment(node)) {
             this.visitComment(node, metadata);
-        } else if (this.attach) {
+        }
+        else if (this.attach) {
             this.visitNode(node, metadata);
         }
     }

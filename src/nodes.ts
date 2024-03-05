@@ -1,4 +1,7 @@
+import { Comment, Node } from './javascript';
+import { SourceLocation } from './scanner';
 import { Syntax } from './syntax';
+import { TokenEntry } from './token';
 
 export type ArgumentListElement = Expression | SpreadElement;
 export type ArrayExpressionElement = Expression | SpreadElement | null;
@@ -15,7 +18,35 @@ export type Expression = ArrayExpression | ArrowFunctionExpression | AssignmentE
     ConditionalExpression | Identifier | FunctionExpression | Literal | NewExpression | ObjectExpression |
     RegexLiteral | SequenceExpression | StaticMemberExpression | TaggedTemplateExpression |
     ThisExpression | UnaryExpression | UpdateExpression | YieldExpression;
+
 export type FunctionParameter = AssignmentPattern | BindingIdentifier | BindingPattern;
+
+export function is_function_parameter(node: Node): node is FunctionParameter {
+    return is_array_pattern(node) || is_assignment_pattern(node) || is_identifier(node) || is_object_expression(node) || is_object_pattern(node) || is_rest_element(node) || is_spread_element(node);
+}
+
+export function assert_function_parameter(node: Node): FunctionParameter {
+    if (is_function_parameter(node)) {
+        return node;
+    }
+    else {
+        throw new Error(`assert_function_parameter ${node.type}`);
+    }
+}
+
+export function is_function_parameters(nodes: Node[]): nodes is FunctionParameter[] {
+    return nodes.every(is_function_parameter);
+}
+
+export function assert_function_parameters(nodes: Node[]): FunctionParameter[] {
+    if (is_function_parameters(nodes)) {
+        return nodes;
+    }
+    else {
+        return nodes.map(x => assert_function_parameter(x));
+    }
+}
+
 export type ImportDeclarationSpecifier = ImportDefaultSpecifier | ImportNamespaceSpecifier | ImportSpecifier;
 export type ObjectExpressionProperty = Property | SpreadElement;
 export type ObjectPatternProperty = Property | RestElement;
@@ -24,9 +55,26 @@ export type Statement = AsyncFunctionDeclaration | BreakStatement | ContinueStat
     EmptyStatement | ExpressionStatement | Directive | ForStatement | ForInStatement | ForOfStatement |
     FunctionDeclaration | IfStatement | ReturnStatement | SwitchStatement | ThrowStatement |
     TryStatement | VariableDeclaration | WhileStatement | WithStatement;
+/**
+ * WARNING: Collision with lib.es5.d.ts symbol.
+ */
 export type PropertyKey = Identifier | Literal;
 export type PropertyValue = AssignmentPattern | AsyncFunctionExpression | BindingIdentifier | BindingPattern | FunctionExpression;
 export type StatementListItem = Declaration | Statement;
+
+export function is_member_expression(node: Node): node is ComputedMemberExpression | StaticMemberExpression {
+    return is_computed_member_expression(node) || is_static_member_expression(node);
+}
+
+export abstract class BaseNode implements Node {
+    leadingComments?: Comment[];
+    trailingComments?: Comment[];
+    innerComments?: Comment[];
+    range?: [number, number];
+    loc?: SourceLocation;
+    constructor(readonly type: string) {
+    }
+}
 
 export class ArrayExpression {
     readonly type: string;
@@ -37,6 +85,10 @@ export class ArrayExpression {
     }
 }
 
+export function is_array_expression(node: Node): node is ArrayExpression {
+    return node.type === Syntax.ArrayExpression;
+}
+
 export class ArrayPattern {
     readonly type: string;
     readonly elements: ArrayPatternElement[];
@@ -44,6 +96,10 @@ export class ArrayPattern {
         this.type = Syntax.ArrayPattern;
         this.elements = elements;
     }
+}
+
+export function is_array_pattern(node: Node): node is ArrayPattern {
+    return node.type === Syntax.ArrayPattern;
 }
 
 export class ArrowFunctionExpression {
@@ -65,6 +121,24 @@ export class ArrowFunctionExpression {
     }
 }
 
+export function is_arrow_function_expression(node: Node): node is ArrowFunctionExpression {
+    return node.type === Syntax.ArrowFunctionExpression;
+}
+
+export class ArrowParameterPlaceHolder extends BaseNode {
+    readonly params: Expression[];
+    readonly async: boolean;
+    constructor(params: Expression[], async: boolean) {
+        super(Syntax.ArrowParameterPlaceHolder);
+        this.params = params;
+        this.async = async;
+    }
+}
+
+export function is_arrow_parameter_placeholder(node: Node): node is ArrowParameterPlaceHolder {
+    return node.type === Syntax.ArrowParameterPlaceHolder;
+}
+
 export class AssignmentExpression {
     readonly type: string;
     readonly operator: string;
@@ -78,6 +152,10 @@ export class AssignmentExpression {
     }
 }
 
+export function is_assignment_expression(node: Node): node is AssignmentExpression {
+    return node.type === Syntax.AssignmentExpression;
+}
+
 export class AssignmentPattern {
     readonly type: string;
     readonly left: BindingIdentifier | BindingPattern;
@@ -87,6 +165,10 @@ export class AssignmentPattern {
         this.left = left;
         this.right = right;
     }
+}
+
+export function is_assignment_pattern(node: Node): node is AssignmentPattern {
+    return node.type === Syntax.AssignmentPattern;
 }
 
 export class AsyncArrowFunctionExpression {
@@ -169,13 +251,16 @@ export class BinaryExpression {
     }
 }
 
-export class BlockStatement {
-    readonly type: string;
+export class BlockStatement extends BaseNode {
     readonly body: Statement[];
-    constructor(body) {
-        this.type = Syntax.BlockStatement;
+    constructor(body: Statement[]) {
+        super(Syntax.BlockStatement);
         this.body = body;
     }
+}
+
+export function is_block_statement(node: Node): node is BlockStatement {
+    return node.type === Syntax.BlockStatement;
 }
 
 export class BreakStatement {
@@ -222,8 +307,8 @@ export class ChainExpression {
 
 export class ClassBody {
     readonly type: string;
-    readonly body: Property[];
-    constructor(body: Property[]) {
+    readonly body: (Property | MethodDefinition)[];
+    constructor(body: (Property | MethodDefinition)[]) {
         this.type = Syntax.ClassBody;
         this.body = body;
     }
@@ -267,6 +352,15 @@ export class ComputedMemberExpression {
         this.object = object;
         this.property = property;
         this.optional = optional;
+    }
+}
+
+export function is_computed_member_expression(node: Node): node is ComputedMemberExpression {
+    if (node.type === Syntax.MemberExpression) {
+        return (node as ComputedMemberExpression).computed === true;
+    }
+    else {
+        return false;
     }
 }
 
@@ -379,6 +473,10 @@ export class ExpressionStatement {
     }
 }
 
+export function is_expression_statement(node: Node): node is Directive | ExpressionStatement {
+    return node.type === Syntax.ExpressionStatement;
+}
+
 export class ForInStatement {
     readonly type: string;
     readonly left: Expression;
@@ -465,10 +563,14 @@ export class FunctionExpression {
 export class Identifier {
     readonly type: string;
     readonly name: string;
-    constructor(name) {
+    constructor(name: string) {
         this.type = Syntax.Identifier;
         this.name = name;
     }
+}
+
+export function is_identifier(node: Node): node is Identifier {
+    return node.type === Syntax.Identifier;
 }
 
 export class IfStatement {
@@ -495,7 +597,7 @@ export class ImportDeclaration {
     readonly type: string;
     readonly specifiers: ImportDeclarationSpecifier[];
     readonly source: Literal;
-    constructor(specifiers, source) {
+    constructor(specifiers: ImportDeclarationSpecifier[], source: Literal) {
         this.type = Syntax.ImportDeclaration;
         this.specifiers = specifiers;
         this.source = source;
@@ -553,6 +655,10 @@ export class Literal {
     }
 }
 
+export function is_literal(node: Node): node is Literal {
+    return node.type === Syntax.Literal;
+}
+
 export class MetaProperty {
     readonly type: string;
     readonly meta: Identifier;
@@ -585,11 +691,18 @@ export class Module {
     readonly type: string;
     readonly body: StatementListItem[];
     readonly sourceType: string;
+    comments?: Comment[];
+    tokens?: TokenEntry[];
+    errors?: Error[];
     constructor(body: StatementListItem[]) {
         this.type = Syntax.Program;
         this.body = body;
         this.sourceType = 'module';
     }
+}
+
+export function is_module(node: Node): node is Module {
+    return node instanceof Module;
 }
 
 export class NewExpression {
@@ -612,6 +725,10 @@ export class ObjectExpression {
     }
 }
 
+export function is_object_expression(node: Node): node is ObjectExpression {
+    return node.type === Syntax.ObjectExpression;
+}
+
 export class ObjectPattern {
     readonly type: string;
     readonly properties: ObjectPatternProperty[];
@@ -621,15 +738,19 @@ export class ObjectPattern {
     }
 }
 
+export function is_object_pattern(node: Node): node is ObjectPattern {
+    return node.type === Syntax.ObjectPattern;
+}
+
 export class Property {
     readonly type: string;
     readonly key: PropertyKey;
     readonly computed: boolean;
     readonly value: PropertyValue | null;
-    readonly kind: string;
+    readonly kind: 'get' | 'set' | 'init';
     readonly method: boolean;
     readonly shorthand: boolean;
-    constructor(kind: string, key: PropertyKey, computed: boolean, value: PropertyValue | null, method: boolean, shorthand: boolean) {
+    constructor(kind: 'get' | 'set' | 'init', key: PropertyKey, computed: boolean, value: PropertyValue | null, method: boolean, shorthand: boolean) {
         this.type = Syntax.Property;
         this.key = key;
         this.computed = computed;
@@ -640,12 +761,16 @@ export class Property {
     }
 }
 
+export function is_property(node: Node): node is Property {
+    return node.type === Syntax.Property;
+}
+
 export class RegexLiteral {
     readonly type: string;
     readonly value: RegExp;
     readonly raw: string;
-    readonly regex: { pattern: string; flags: string };
-    constructor(value: RegExp, raw: string, pattern: string, flags: string) {
+    readonly regex: { pattern: string; flags: string | undefined };
+    constructor(value: RegExp, raw: string, pattern: string, flags: string | undefined) {
         this.type = Syntax.Literal;
         this.value = value;
         this.raw = raw;
@@ -653,12 +778,31 @@ export class RegexLiteral {
     }
 }
 
+export type RestElementArgument = ArrayPattern | AssignmentPattern | ComputedMemberExpression | Identifier | ObjectPattern | StaticMemberExpression;
+
 export class RestElement {
     readonly type: string;
-    readonly argument: BindingIdentifier | BindingPattern;
-    constructor(argument: BindingIdentifier | BindingPattern) {
+    readonly argument: RestElementArgument;
+    constructor(argument: RestElementArgument) {
         this.type = Syntax.RestElement;
         this.argument = argument;
+    }
+}
+
+export function is_rest_element(node: Node): node is RestElement {
+    return node.type === Syntax.RestElement;
+}
+
+export function is_rest_element_argument(node: Node): node is RestElementArgument {
+    return is_array_pattern(node) || is_assignment_pattern(node) || is_identifier(node) || is_member_expression(node) || is_object_pattern(node);
+}
+
+export function assert_rest_element_argument(node: Node): RestElementArgument {
+    if (is_rest_element_argument(node)) {
+        return node;
+    }
+    else {
+        throw new Error(`assert_rest_element_argument ${node.type}`);
     }
 }
 
@@ -675,11 +819,22 @@ export class Script {
     readonly type: string;
     readonly body: StatementListItem[];
     readonly sourceType: string;
+    comments?: Comment[];
+    tokens?: TokenEntry[];
+    errors?: Error[];
     constructor(body: StatementListItem[]) {
         this.type = Syntax.Program;
         this.body = body;
         this.sourceType = 'script';
     }
+}
+
+export function is_script(node: Node): node is Script {
+    return node instanceof Script;
+}
+
+export function is_program(node: Node): node is Program {
+    return is_module(node) || is_script(node);
 }
 
 export class SequenceExpression {
@@ -691,6 +846,10 @@ export class SequenceExpression {
     }
 }
 
+export function is_sequence_expression(node: Node): node is SequenceExpression {
+    return node.type === Syntax.SequenceExpression;
+}
+
 export class SpreadElement {
     readonly type: string;
     readonly argument: Expression;
@@ -698,6 +857,10 @@ export class SpreadElement {
         this.type = Syntax.SpreadElement;
         this.argument = argument;
     }
+}
+
+export function is_spread_element(node: Node): node is SpreadElement {
+    return node.type === Syntax.SpreadElement;
 }
 
 export class StaticMemberExpression {
@@ -715,6 +878,15 @@ export class StaticMemberExpression {
     }
 }
 
+export function is_static_member_expression(node: Node): node is StaticMemberExpression {
+    if (node.type === Syntax.MemberExpression) {
+        return (node as StaticMemberExpression).computed === false;
+    }
+    else {
+        return false;
+    }
+}
+
 export class Super {
     readonly type: string;
     constructor() {
@@ -726,7 +898,7 @@ export class SwitchCase {
     readonly type: string;
     readonly test: Expression | null;
     readonly consequent: Statement[];
-    constructor(test: Expression, consequent: Statement[]) {
+    constructor(test: Expression | null, consequent: Statement[]) {
         this.type = Syntax.SwitchCase;
         this.test = test;
         this.consequent = consequent;
@@ -755,7 +927,7 @@ export class TaggedTemplateExpression {
     }
 }
 
-interface TemplateElementValue {
+export interface TemplateElementValue {
     cooked: string | null;
     raw: string;
 }
@@ -789,6 +961,10 @@ export class ThisExpression {
     }
 }
 
+export function is_this_expression(node: Node): node is ThisExpression {
+    return node.type === Syntax.ThisExpression;
+}
+
 export class ThrowStatement {
     readonly type: string;
     readonly argument: Expression;
@@ -816,7 +992,7 @@ export class UnaryExpression {
     readonly operator: string;
     readonly argument: Expression;
     readonly prefix: boolean;
-    constructor(operator, argument) {
+    constructor(operator: string, argument: Expression) {
         this.type = Syntax.UnaryExpression;
         this.operator = operator;
         this.argument = argument;
@@ -829,7 +1005,7 @@ export class UpdateExpression {
     readonly operator: string;
     readonly argument: Expression;
     readonly prefix: boolean;
-    constructor(operator, argument, prefix) {
+    constructor(operator: string, argument: Expression, prefix: boolean) {
         this.type = Syntax.UpdateExpression;
         this.operator = operator;
         this.argument = argument;
@@ -890,4 +1066,8 @@ export class YieldExpression {
         this.argument = argument;
         this.delegate = delegate;
     }
+}
+
+export function is_yield_expression(node: Node): node is YieldExpression {
+    return node.type === Syntax.YieldExpression;
 }

@@ -56,7 +56,7 @@ function generateTestCase(testCase) {
         tree = JSON.stringify(tree, null, 4);
     } catch (e) {
         if (typeof e.index === 'undefined') {
-            console.error("Failed to generate test result.");
+            console.log("Failed to generate test result.");
             throw e;
         }
         tree = errorToObject(e);
@@ -67,7 +67,7 @@ function generateTestCase(testCase) {
 
     filePath = path.join(__dirname, 'fixtures', fileName);
     fs.writeFileSync(filePath, tree);
-    console.error("Done.");
+    console.log("Done.");
 }
 
 cases = createTestCases();
@@ -93,7 +93,7 @@ Object.keys(cases).forEach(function (key) {
         }
 
     } else {
-        console.error('Incomplete test case:' + testCase.key + '. Generating test result...');
+        console.log('Incomplete test case:' + testCase.key + '. Generating test result...');
         generateTestCase(testCase);
     }
 });
@@ -103,19 +103,19 @@ tick = (new Date()) - tick;
 header = total + ' tests. ' + failures.length + ' failures. ' + tick + ' ms';
 
 if (failures.length) {
-    console.error(header);
+    console.log(header);
     failures.forEach(function (failure) {
         var expectedObject, actualObject;
         try {
             expectedObject = JSON.parse(failure.expected);
             actualObject = JSON.parse(failure.actual);
 
-            console.error(failure.source + ': Expected\n    ' +
+            console.log(failure.source + ': Expected\n    ' +
                 failure.expected.split('\n').join('\n    ') +
                 '\nto match\n    ' + failure.actual + '\nDiff:\n' +
                 diff(expectedObject, actualObject));
         } catch (ex) {
-            console.error(failure.source + ': Expected\n    ' +
+            console.log(failure.source + ': Expected\n    ' +
                 failure.expected.split('\n').join('\n    ') +
                 '\nto match\n    ' + failure.actual);
         }
