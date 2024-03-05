@@ -107,13 +107,11 @@ export class Scanner {
     }
 
     public throwUnexpectedToken(message = Messages.UnexpectedTokenIllegal): never {
-        return this.errorHandler.throwError(this.index, this.lineNumber,
-            this.index - this.lineStart + 1, message);
+        return this.errorHandler.throwError(this.index, this.lineNumber, this.index - this.lineStart + 1, message);
     }
 
-    private tolerateUnexpectedToken(message = Messages.UnexpectedTokenIllegal) {
-        this.errorHandler.tolerateError(this.index, this.lineNumber,
-            this.index - this.lineStart + 1, message);
+    private tolerateUnexpectedToken(message = Messages.UnexpectedTokenIllegal): void {
+        this.errorHandler.tolerateError(this.index, this.lineNumber, this.index - this.lineStart + 1, message);
     }
 
     // https://tc39.github.io/ecma262/#sec-comments
@@ -536,7 +534,7 @@ export class Scanner {
         return id;
     }
 
-    private octalToDecimal(ch: string) {
+    private octalToDecimal(ch: string): { code: number, octal: boolean } {
         // \0 is not octal escape sequence
         let octal = (ch !== '0');
         let code = octalValue(ch);
@@ -946,13 +944,14 @@ export class Scanner {
                                 str += unescapedChar;
                             }
                             break;
-                        case 'x':
+                        case 'x': {
                             const unescaped = this.scanHexEscape(ch);
                             if (unescaped === null) {
                                 this.throwUnexpectedToken(Messages.InvalidHexEscapeSequence);
                             }
                             str += unescaped;
                             break;
+                        }
                         case 'n':
                             str += '\n';
                             break;
@@ -1090,7 +1089,7 @@ export class Scanner {
                                 }
                             }
                             break;
-                        case 'x':
+                        case 'x': {
                             const unescaped = this.scanHexEscape(ch);
                             if (unescaped === null) {
                                 notEscapeSequenceHead = 'x';
@@ -1099,6 +1098,7 @@ export class Scanner {
                                 cooked += unescaped;
                             }
                             break;
+                        }
                         case 'b':
                             cooked += '\b';
                             break;

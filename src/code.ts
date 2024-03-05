@@ -54,7 +54,7 @@ export function isLineTerminator(ch: number): boolean {
 
 // 7.6 Identifier Names and Identifiers
 
-function fromCodePoint(cp: number) {
+function fromCodePoint(cp: number): string {
     if (cp <= 0xFFFF) {
         return String.fromCharCode(cp);
     }

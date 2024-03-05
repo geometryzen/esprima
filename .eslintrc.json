@@ -4,7 +4,9 @@
         "es6": true,
         "node": true
     },
-    "extends": ["eslint:recommended"],
+    "extends": [
+        "eslint:recommended"
+    ],
     "globals": {
         "Atomics": "readonly",
         "SharedArrayBuffer": "readonly"
@@ -12,15 +14,25 @@
     "parserOptions": {
         "sourceType": "script"
     },
-    "plugins": ["esprima-internal"],
+    "plugins": [
+        "esprima-internal"
+    ],
     "rules": {
         "esprima-internal/esprima-complexity": "error",
-        "no-case-declarations": "off",
-        "no-constant-condition": ["error", { "checkLoops": false }]
+        "no-case-declarations": "error",
+        "no-constant-condition": [
+            "error",
+            {
+                "checkLoops": false
+            }
+        ]
     },
     "overrides": [
         {
-            "files": ["*.ts", "src/**"],
+            "files": [
+                "*.ts",
+                "src/**"
+            ],
             "env": {
                 "node": false
             },
@@ -35,8 +47,12 @@
                 "project": "src/tsconfig.json"
             },
             "rules": {
-                "@typescript-eslint/no-explicit-any": ["off"],
-                "@typescript-eslint/explicit-function-return-type": ["off"]
+                "@typescript-eslint/no-explicit-any": [
+                    "error"
+                ],
+                "@typescript-eslint/explicit-function-return-type": [
+                    "error"
+                ]
             }
         }
     ]

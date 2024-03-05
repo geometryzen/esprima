@@ -24,7 +24,8 @@ export class ErrorHandler {
     tolerate(error: unknown): void {
         if (this.tolerant) {
             this.recordError(error as Error);
-        } else {
+        }
+        else {
             throw error;
         }
     }
@@ -33,7 +34,8 @@ export class ErrorHandler {
         let error = new Error(msg);
         try {
             throw error;
-        } catch (base) {
+        }
+        catch (base) {
             /* istanbul ignore else */
             if (Object.create && Object.defineProperty) {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -58,11 +60,12 @@ export class ErrorHandler {
         throw this.createError(index, line, col, description);
     }
 
-    tolerateError(index: number, line: number, col: number, description: string) {
+    tolerateError(index: number, line: number, col: number, description: string): void {
         const error = this.createError(index, line, col, description);
         if (this.tolerant) {
             this.recordError(error);
-        } else {
+        }
+        else {
             throw error;
         }
     }

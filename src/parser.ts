@@ -94,7 +94,7 @@ export function is_line_comment(node: Node): node is LineComment {
     return node.type === Syntax.LineComment;
 }
 
-function create_comment_node(multiline: boolean, value: string) {
+function create_comment_node(multiline: boolean, value: string): BlockComment | LineComment {
     if (multiline) {
         return new BlockComment(value);
     }
@@ -135,7 +135,7 @@ export class Parser {
     hasLineTerminator: boolean;
 
     context: Context;
-    tokens: any[];
+    tokens: TokenEntry[];
     startMarker: Marker;
     lastMarker: Marker;
 
@@ -547,7 +547,7 @@ export class Parser {
 
     // Quietly expect a comma when in tolerant mode, otherwise delegates to expect().
 
-    expectCommaSeparator() {
+    expectCommaSeparator(): void {
         if (this.config.tolerant) {
             const token = this.lookahead;
             if (token.type === Token.Punctuator && token.value === ',') {
@@ -651,7 +651,7 @@ export class Parser {
     // the flags outside of the parser. This means the production the parser parses is used as a part of a potential
     // pattern. The CoverInitializedName check is deferred.
 
-    isolateCoverGrammar<T>(parseFunction: (this: Parser) => T) {
+    isolateCoverGrammar<T>(parseFunction: (this: Parser) => T): T {
         const previousIsBindingElement = this.context.isBindingElement;
         const previousIsAssignmentTarget = this.context.isAssignmentTarget;
         const previousFirstCoverInitializedNameError = this.context.firstCoverInitializedNameError;
@@ -920,14 +920,14 @@ export class Parser {
         let key: PropertyKey;
         switch (token.type) {
             case Token.StringLiteral:
-            case Token.NumericLiteral:
+            case Token.NumericLiteral: {
                 if (this.context.strict && token.octal) {
                     this.tolerateUnexpectedToken(token, Messages.StrictOctalLiteral);
                 }
                 const raw = this.getTokenRaw(token);
                 key = this.finalize(node, new Literal(token.value as string, raw));
                 break;
-
+            }
             case Token.Identifier:
             case Token.BooleanLiteral:
             case Token.NullLiteral:
@@ -1485,7 +1485,7 @@ export class Parser {
         }
     }
 
-    parseAsyncArgument() {
+    parseAsyncArgument(): Expression {
         const arg = this.parseAssignmentExpression();
         this.context.firstCoverInitializedNameError = null;
         return arg;
@@ -1953,7 +1953,10 @@ export class Parser {
 
     // https://tc39.github.io/ecma262/#sec-assignment-operators
 
-    checkPatternParam(options: FormalParameters, param: ArrayPatternElement | Param | Identifier | Expression) {
+    /**
+     * The side-effect of calling this method is to modify options.simple.
+     */
+    checkPatternParam(options: FormalParameters, param: ArrayPatternElement | Param | Identifier | Expression): void {
         if (param) {
             if (is_identifier(param)) {
                 // FIXME?
@@ -3146,7 +3149,7 @@ export class Parser {
                 statement = this.parseExpressionStatement();
                 break;
 
-            case Token.Punctuator:
+            case Token.Punctuator: {
                 const value = this.lookahead.value;
                 if (value === '{') {
                     statement = this.parseBlock();
@@ -3161,7 +3164,7 @@ export class Parser {
                     statement = this.parseExpressionStatement();
                 }
                 break;
-
+            }
             case Token.Identifier:
                 statement = this.matchAsyncFunction() ? this.parseFunctionDeclaration() : this.parseLabelledStatement();
                 break;
@@ -3258,7 +3261,10 @@ export class Parser {
         return this.finalize(node, new BlockStatement(body));
     }
 
-    validateParam(options: FormalParameters, param: RawToken, name: string) {
+    /**
+     * The side-effect of calling this method is to modify options.
+     */
+    validateParam(options: FormalParameters, param: RawToken, name: string): void {
         const key = '$' + name;
         if (this.context.strict) {
             if (this.scanner.isRestrictedWord(name)) {
@@ -3314,6 +3320,9 @@ export class Parser {
         return this.finalize(node, new RestElement(arg));
     }
 
+    /**
+     * The side effect of calling this method is to modify options.
+     */
     parseFormalParameter(options: FormalParameters): void {
         const params: RawToken[] = [];
         const param = this.match('...') ? this.parseRestElement(params) : this.parsePatternWithDefault(params);

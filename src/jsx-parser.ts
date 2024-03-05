@@ -18,15 +18,18 @@ interface MetaJSXElement {
 function getQualifiedElementName(elementName: JSXElementName): string {
 
     switch (elementName.type) {
-        case JSXSyntax.JSXIdentifier:
+        case JSXSyntax.JSXIdentifier: {
             const id = elementName as JSXIdentifier;
             return id.name;
-        case JSXSyntax.JSXNamespacedName:
+        }
+        case JSXSyntax.JSXNamespacedName: {
             const ns = elementName as JSXNamespacedName;
             return getQualifiedElementName(ns.namespace) + ':' + getQualifiedElementName(ns.name);
-        case JSXSyntax.JSXMemberExpression:
+        }
+        case JSXSyntax.JSXMemberExpression: {
             const expr = elementName as JSXMemberExpression;
             return getQualifiedElementName(expr.object) + '.' + getQualifiedElementName(expr.property);
+        }
         /* istanbul ignore next */
         default: {
             throw new Error(`getQualifiedElementName`);
@@ -44,19 +47,19 @@ export class JSXParser extends Parser {
         return this.match('<') ? this.parseJSXRoot() : super.parsePrimaryExpression();
     }
 
-    startJSX() {
+    startJSX(): void {
         // Unwind the scanner before the lookahead token.
         this.scanner.index = this.startMarker.index;
         this.scanner.lineNumber = this.startMarker.line;
         this.scanner.lineStart = this.startMarker.index - this.startMarker.column;
     }
 
-    finishJSX() {
+    finishJSX(): RawToken {
         // Prime the next lookahead.
-        this.nextToken();
+        return this.nextToken();
     }
 
-    reenterJSX() {
+    reenterJSX(): void {
         this.startJSX();
         this.expectJSX('}');
 

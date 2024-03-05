@@ -39,7 +39,7 @@ class Reader {
 
     // Determine if forward slash (/) is an operator or part of a regular expression
     // https://github.com/mozilla/sweet.js/wiki/design
-    isRegexStart() {
+    isRegexStart(): boolean {
         const previous = this.values[this.values.length - 1];
         let regex = (previous !== null);
 
@@ -49,11 +49,11 @@ class Reader {
                 regex = false;
                 break;
 
-            case ')':
+            case ')': {
                 const keyword = this.values[this.paren - 1];
                 regex = (keyword === 'if' || keyword === 'while' || keyword === 'for' || keyword === 'with');
                 break;
-
+            }
             case '}':
                 // Dividing a function by anything makes little sense,
                 // but we have to check for that.
@@ -122,7 +122,7 @@ export class Tokenizer {
         this.reader = new Reader();
     }
 
-    errors() {
+    errors(): Error[] {
         return this.errorHandler.errors;
     }
 
