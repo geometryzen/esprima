@@ -1,4 +1,4 @@
-export { parse, ParseDelegate, parseModule, ParseOptions, parseScript, tokenize } from './esprima';
+export { parse, ParseDelegate, parseModule, ParseOptions, parseScript, tokenize, version } from './esprima';
 export { Comment, Node } from './javascript';
 export * from './nodes';
 export { MetaData } from './parser';

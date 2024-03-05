@@ -2,7 +2,7 @@ import { parse } from "../src/index";
 import { is_assignment_expression, is_expression_statement, is_script } from "../src/nodes";
 import { Syntax } from "../src/syntax";
 
-xtest("parse", function () {
+test("parse", function () {
     const node = parse("x=3");
     expect(node.type).toBe(Syntax.Program);
     if (is_script(node)) {
@@ -29,7 +29,7 @@ test("sandbox", function () {
     const node = parse("for (var x of []) class C {}");
     expect(node.type).toBe(Syntax.Program);
     if (is_script(node)) {
-        console.log(JSON.stringify(node, null, 2))
+        // console.lg(JSON.stringify(node, null, 2))
         const body = node.body;
         expect(body.length).toBe(1);
         // const stmt = body[0];
