@@ -122,7 +122,7 @@ interface ParseTemplateLiteralOptions {
     isTagged: boolean;
 }
 
-const EsprimaPrecedenceTable = {
+const PrecedenceTable = {
     ')': 0,
     ';': 0,
     ',': 0,
@@ -152,7 +152,13 @@ const EsprimaPrecedenceTable = {
     '%': 15
 } as const;
 
-export type PrecedenceOperator = keyof typeof EsprimaPrecedenceTable;
+export type PrecedenceOperator = ')' | ';' | ',' | '=' | ']' | '??' | '||' | '&&' | '|' | '^' | '&' | '==' | '!=' | '===' | '!==' | '<' | '>' | '<=' | '>=' | '<<' | '>>' | '>>>' | '+' | '-' | '*' | '/' | '%';
+
+function shallow_copy<T extends object>(source: T): T {
+    return {
+        ...source,
+    }
+}
 
 export class Parser {
     readonly config: Config;
@@ -189,7 +195,7 @@ export class Parser {
         this.scanner = new Scanner(code, this.errorHandler);
         this.scanner.trackComment = this.config.comment;
 
-        this.operatorPrecedence = EsprimaPrecedenceTable;
+        this.operatorPrecedence = shallow_copy(PrecedenceTable);
 
         if (options.operatorPrecedence) {
             const operators = Object.keys(this.operatorPrecedence);

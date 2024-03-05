@@ -141,7 +141,7 @@
         "verify-line-ending": "node test/verify-line-ending.js",
         "generate-fixtures": "node tools/generate-fixtures.js",
         "analyze-coverage": "istanbul cover test/unit-tests.js",
-        "check-coverage": "istanbul check-coverage --statement 99.39 --branch 98.87 --function 97.88 --lines 99.43",
+        "check-coverage": "istanbul check-coverage --statement 99.25 --branch 98.95 --function 98.05 --lines 99.32",
         "dynamic-analysis": "npm run analyze-coverage && npm run check-coverage",
         "clean": "rm -rf coverage && rm -rf dist && rm -rf docs && rm -rf es2015 && rm -rf system && rm -rf types && rm -rf build && rm -rf src/*.js",
         "test": "npm run all-tests && npm run static-analysis && npm run dynamic-analysis",
