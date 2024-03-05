@@ -148,4 +148,4 @@ export function tokenize(code: string, options: TokenizerConfig, delegate?: (tok
 export { Syntax } from './syntax';
 
 // Sync with *.json manifests.
-export const version = '0.9.10';
+export const version = '0.9.11';

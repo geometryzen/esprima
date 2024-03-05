@@ -29,10 +29,6 @@
         "dist/system/index.js.map",
         "dist/system/index.min.js",
         "dist/system/index.min.js.map",
-        "dist/umd/index.js",
-        "dist/umd/index.js.map",
-        "dist/umd/index.min.js",
-        "dist/umd/index.min.js.map",
         "dist/index.d.ts"
     ],
     "bin": {

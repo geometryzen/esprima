@@ -44,14 +44,12 @@ const options: RollupOptions[] = [
                 sourcemap: true,
                 plugins: [terser()]
             },
-            /*
             {
                 banner,
                 file: './dist/commonjs/index.js',
                 format: 'commonjs',
                 sourcemap: true
             },
-            */
         ],
         plugins: [
             // Allows us to consume libraries that are CommonJS.
