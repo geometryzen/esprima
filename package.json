@@ -96,6 +96,7 @@
     ],
     "scripts": {
         "build": "npm run clean && rollup --config rollup.config.mts --configPlugin @rollup/plugin-typescript",
+        "check": "npx package-check",
         "check-version": "node test/check-version.js",
         "docs": "npm run docs:typedoc && open-cli docs/index.html",
         "docs:typedoc": "rm -rf docs && typedoc --options typedoc.json",
@@ -105,7 +106,7 @@
         "prepublishOnly": "npm run check && npm run build && npm run test && npm run lint && npm run pages",
         "release": "release-it",
         "jest": "npm run build && jest",
-        "lint-code": "node test/check-version.js",
+        "lint-code": "eslint src/*.ts",
         "code-style": "tsfmt --verify src/*.ts && tsfmt --verify test/*.js",
         "format-code": "tsfmt -r src/*.ts",
         "format-test": "tsfmt -r test/benchmark-parser.js && tsfmt -r test/benchmark-tokenizer.js",
