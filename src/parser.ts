@@ -349,7 +349,7 @@ export class Parser {
     tolerateInvalidLoopStatement(): void {
         if (this.matchKeyword("class") || this.matchKeyword("function")) {
             // DGH: Changed this.lookahead to this.lookahead.value
-            this.tolerateError(Messages.UnexpectedToken, this.lookahead.value);
+            this.tolerateError(Messages.UnexpectedToken, this.lookahead as unknown as RawTokenValue);
         }
     }
 

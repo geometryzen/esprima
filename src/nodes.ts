@@ -121,9 +121,11 @@ export class ArrowFunctionExpression {
     }
 }
 
+/*
 export function is_arrow_function_expression(node: Node): node is ArrowFunctionExpression {
     return node.type === Syntax.ArrowFunctionExpression;
 }
+*/
 
 export class ArrowParameterPlaceHolder extends BaseNode {
     readonly params: Expression[];

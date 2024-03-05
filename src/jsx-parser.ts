@@ -319,7 +319,7 @@ export class JSXParser extends Parser {
     // Expect the next JSX token to match the specified punctuator.
     // If not, an exception will be thrown.
 
-    expectJSX(value:string): void {
+    expectJSX(value: string): void {
         const token = this.nextJSXToken();
         if (token.type !== Token.Punctuator || token.value !== value) {
             this.throwUnexpectedToken(token);

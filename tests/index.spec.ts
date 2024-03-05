@@ -26,7 +26,7 @@ xtest("parse", function () {
     }
 });
 test("sandbox", function () {
-    const node = parse("x++;");
+    const node = parse("for (var x of []) class C {}");
     expect(node.type).toBe(Syntax.Program);
     if (is_script(node)) {
         console.log(JSON.stringify(node, null, 2))
