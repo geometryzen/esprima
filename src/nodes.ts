@@ -1,4 +1,4 @@
-import { Comment, Node } from './javascript';
+import { Comment, Node } from './node';
 import { SourceLocation } from './scanner';
 import { Syntax } from './syntax';
 import { TokenEntry } from './token';
@@ -251,6 +251,10 @@ export class BinaryExpression {
         this.left = left;
         this.right = right;
     }
+}
+
+export function is_binary_expression(node: Node): node is BinaryExpression {
+    return node.type === Syntax.BinaryExpression;
 }
 
 export class BlockStatement extends BaseNode {

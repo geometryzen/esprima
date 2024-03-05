@@ -23,12 +23,13 @@
 */
 
 import { CommentHandler } from './comment-handler';
-import { Node } from './javascript';
 import { JSXParser } from './jsx-parser';
+import { Node } from './node';
 import { Module, Program, Script } from './nodes';
-import { MetaData, Parser } from './parser';
+import { MetaData, Parser, PrecedenceOperator } from './parser';
 import { TokenEntry } from './token';
 import { BufferEntry, Tokenizer, TokenizerConfig } from './tokenizer';
+
 
 export interface ParseOptions {
     comment?: boolean;
@@ -40,6 +41,10 @@ export interface ParseOptions {
     tokens?: boolean;
     tolerant?: boolean;
     source?: string;
+    /**
+     * An optional function to override the standard JavaScript precedence of operators.
+     */
+    operatorPrecedence?: (operator: PrecedenceOperator) => number | undefined;
 }
 
 /**

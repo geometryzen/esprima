@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { assert } from './assert';
 import { ErrorHandler } from './error-handler';
 import { ParseDelegate, ParseOptions } from './esprima';
-import { Node } from './javascript';
 import { Messages } from './messages';
+import { Node } from './node';
 import { ArgumentListElement, ArrayExpression, ArrayExpressionElement, ArrayPattern, ArrayPatternElement, ArrowFunctionExpression, ArrowParameterPlaceHolder, assert_function_parameters, AssignmentExpression, AssignmentPattern, AsyncArrowFunctionExpression, AsyncFunctionDeclaration, AsyncFunctionExpression, AwaitExpression, BaseNode, BinaryExpression, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, CallExpression, CatchClause, ChainElement, ChainExpression, ClassBody, ClassDeclaration, ClassExpression, ComputedMemberExpression, ConditionalExpression, ContinueStatement, DebuggerStatement, Directive, DoWhileStatement, EmptyStatement, ExportAllDeclaration, ExportDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration, ExportSpecifier, Expression, ExpressionStatement, ForInStatement, ForOfStatement, ForStatement, FunctionDeclaration, FunctionExpression, FunctionParameter, Identifier, IfStatement, Import, ImportDeclaration, ImportDeclarationSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier, ImportSpecifier, is_array_expression, is_array_pattern, is_arrow_parameter_placeholder, is_assignment_expression, is_assignment_pattern, is_identifier, is_literal, is_member_expression, is_object_expression, is_object_pattern, is_rest_element, is_sequence_expression, is_spread_element, is_yield_expression, LabeledStatement, Literal, MetaProperty, MethodDefinition, Module, NewExpression, ObjectExpression, ObjectExpressionProperty, ObjectPattern, ObjectPatternProperty, Property, PropertyKey, PropertyValue, RegexLiteral, RestElement, ReturnStatement, Script, SequenceExpression, SpreadElement, Statement, StatementListItem, StaticMemberExpression, Super, SwitchCase, SwitchStatement, TaggedTemplateExpression, TemplateElement, TemplateLiteral, ThisExpression, ThrowStatement, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, VariableDeclarator, WhileStatement, WithStatement, YieldExpression } from './nodes';
-import { Precedence } from './Precedence';
 import { Comment, RawToken, RawTokenValue, Scanner, SourceLocation } from './scanner';
 import { Syntax } from './syntax';
 import { assert_raw_token_value, as_string, Token, TokenName } from './token';
@@ -122,14 +122,44 @@ interface ParseTemplateLiteralOptions {
     isTagged: boolean;
 }
 
-/* eslint-disable @typescript-eslint/unbound-method */
+const EsprimaPrecedenceTable = {
+    ')': 0,
+    ';': 0,
+    ',': 0,
+    '=': 0,
+    ']': 0,
+    '??': 5,
+    '||': 6,
+    '&&': 7,
+    '|': 8,
+    '^': 9,
+    '&': 10,
+    '==': 11,
+    '!=': 11,
+    '===': 11,
+    '!==': 11,
+    '<': 12,
+    '>': 12,
+    '<=': 12,
+    '>=': 12,
+    '<<': 13,
+    '>>': 13,
+    '>>>': 13,
+    '+': 14,
+    '-': 14,
+    '*': 15,
+    '/': 15,
+    '%': 15
+} as const;
+
+export type PrecedenceOperator = keyof typeof EsprimaPrecedenceTable;
 
 export class Parser {
     readonly config: Config;
     readonly delegate?: ParseDelegate | null;
     readonly errorHandler: ErrorHandler;
     readonly scanner: Scanner;
-    readonly operatorPrecedence: { [ch: string]: number };
+    readonly operatorPrecedence: { [operator: string]: number };
 
     lookahead: RawToken;
     hasLineTerminator: boolean;
@@ -159,65 +189,17 @@ export class Parser {
         this.scanner = new Scanner(code, this.errorHandler);
         this.scanner.trackComment = this.config.comment;
 
-        // How to override...
-        this.operatorPrecedence = {
-            ')': Precedence.Sequence,
-            ';': Precedence.Sequence,
-            ',': Precedence.Sequence,
-            '=': Precedence.Sequence,
-            ']': Precedence.Sequence,
-            '||': Precedence.LogicalOR,
-            '&&': Precedence.LogicalAND,
-            '|': Precedence.BitwiseOR,
-            '^': Precedence.BitwiseXOR,
-            '&': Precedence.BitwiseAND,
-            '==': Precedence.Equality,
-            '!=': Precedence.Equality,
-            '===': Precedence.Equality,
-            '!==': Precedence.Equality,
-            '<': Precedence.Relational,
-            '>': Precedence.Relational,
-            '<=': Precedence.Relational,
-            '>=': Precedence.Relational,
-            '<<': Precedence.BitwiseSHIFT,
-            '>>': Precedence.BitwiseSHIFT,
-            '>>>': Precedence.BitwiseSHIFT,
-            '+': Precedence.Additive,
-            '-': Precedence.Additive,
-            '*': Precedence.Multiplicative,
-            '/': Precedence.Multiplicative,
-            '%': Precedence.BitwiseSHIFT
-        };
+        this.operatorPrecedence = EsprimaPrecedenceTable;
 
-        this.operatorPrecedence = {
-            ')': 0,
-            ';': 0,
-            ',': 0,
-            '=': 0,
-            ']': 0,
-            '??': 5,
-            '||': 6,
-            '&&': 7,
-            '|': 8,
-            '^': 9,
-            '&': 10,
-            '==': 11,
-            '!=': 11,
-            '===': 11,
-            '!==': 11,
-            '<': 12,
-            '>': 12,
-            '<=': 12,
-            '>=': 12,
-            '<<': 13,
-            '>>': 13,
-            '>>>': 13,
-            '+': 14,
-            '-': 14,
-            '*': 15,
-            '/': 15,
-            '%': 15
-        };
+        if (options.operatorPrecedence) {
+            const operators = Object.keys(this.operatorPrecedence);
+            for (const operator of operators) {
+                const override = options.operatorPrecedence(operator as PrecedenceOperator);
+                if (typeof override === 'number') {
+                    this.operatorPrecedence[operator] = override;
+                }
+            }
+        }
 
         this.lookahead = {
             type: Token.EOF,
@@ -1834,7 +1816,7 @@ export class Parser {
     binaryPrecedence(token: RawToken): number {
         const op = token.value;
         if (token.type === Token.Punctuator) {
-            return this.operatorPrecedence[op] || 0;
+            return this.operatorPrecedence[op as ')'] || 0;
         }
         else if (token.type === Token.Keyword) {
             return (op === 'instanceof' || (this.context.allowIn && op === 'in')) ? 12 : 0;

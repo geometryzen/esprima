@@ -1,4 +1,4 @@
-import { Comment, Node } from './javascript';
+import { Comment, Node } from './node';
 import { is_block_statement, is_program } from './nodes';
 import { BlockComment, is_block_comment, is_line_comment, LineComment, MetaData } from './parser';
 
