@@ -68,8 +68,63 @@ export function as_string(value: ReaderEntry): string {
         return value;
     }
     else {
-        const stack = new Error().stack;
-        throw new Error(`as_string ${value} ${typeof value} ${stack}`);
+        throw new Error();
+    }
+}
+
+export function as_unary_operator(value: ReaderEntry): '+' | '-' | '~' | '!' | 'delete' | 'typeof' | 'void' {
+    const operator = as_string(value);
+    switch (operator) {
+        case '+':
+        case '-':
+        case '~':
+        case '!':
+        case 'delete':
+        case 'typeof':
+        case 'void': {
+            return operator;
+        }
+        /* istanbul ignore next */
+        default: {
+            throw new Error();
+        }
+    }
+}
+
+export function as_binary_operator(value: ReaderEntry): '+' | '-' | '*' | '/' | '|' | '^' | '**' | '===' | '!==' | '==' | '!=' | '&' | '<' | '>' | '<=' | '>=' | '<<' | '>>' | '||' | '&&' | '??' | '>>>' | '%' | 'in' | 'instanceof' {
+    const operator = as_string(value);
+    switch (operator) {
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '|':
+        case '^':
+        case '**':
+        case '&':
+        case '<':
+        case '>':
+        case '<=':
+        case '>=':
+        case '===':
+        case '!==':
+        case '==':
+        case '!=':
+        case '<<':
+        case '>>':
+        case '||':
+        case '&&':
+        case '??':
+        case '>>>':
+        case '%':
+        case 'in':
+        case 'instanceof': {
+            return operator;
+        }
+        /* istanbul ignore next */
+        default: {
+            throw new Error(`opr: '${value}'`);
+        }
     }
 }
 

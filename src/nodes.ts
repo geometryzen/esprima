@@ -1,3 +1,4 @@
+import { assert } from './assert';
 import { Comment, Node } from './node';
 import { SourceLocation } from './scanner';
 import { Syntax } from './syntax';
@@ -8,15 +9,15 @@ export type ArrayExpressionElement = Expression | SpreadElement | null;
 export type ArrayPatternElement = AssignmentPattern | BindingIdentifier | BindingPattern | RestElement | null;
 export type BindingPattern = ArrayPattern | ObjectPattern;
 export type BindingIdentifier = Identifier;
-export type ChainElement = CallExpression | ComputedMemberExpression | StaticMemberExpression;
+export type ChainElement = CallExpression | MemberExpression;
 export type Declaration = AsyncFunctionDeclaration | ClassDeclaration | ExportDeclaration | FunctionDeclaration | ImportDeclaration | VariableDeclaration;
 export type ExportableDefaultDeclaration = BindingIdentifier | BindingPattern | ClassDeclaration | Expression | FunctionDeclaration;
 export type ExportableNamedDeclaration = AsyncFunctionDeclaration | ClassDeclaration | FunctionDeclaration | VariableDeclaration;
 export type ExportDeclaration = ExportAllDeclaration | ExportDefaultDeclaration | ExportNamedDeclaration;
-export type Expression = ArrayExpression | ArrowFunctionExpression | AssignmentExpression | AsyncArrowFunctionExpression | AsyncFunctionExpression |
-    AwaitExpression | BinaryExpression | CallExpression | ChainExpression | ClassExpression | ComputedMemberExpression |
-    ConditionalExpression | Identifier | FunctionExpression | Literal | NewExpression | ObjectExpression |
-    RegexLiteral | SequenceExpression | StaticMemberExpression | TaggedTemplateExpression |
+export type Expression = ArrayExpression | ArrowFunctionExpression | AssignmentExpression | AsyncArrowFunctionExpression |
+    AwaitExpression | BinaryExpression | CallExpression | ChainExpression | ClassExpression | ConditionalExpression |
+    Identifier | FunctionExpression | Literal | MemberExpression | NewExpression | ObjectExpression |
+    RegexLiteral | SequenceExpression | TaggedTemplateExpression |
     ThisExpression | UnaryExpression | UpdateExpression | YieldExpression;
 
 export type FunctionParameter = AssignmentPattern | BindingIdentifier | BindingPattern;
@@ -59,12 +60,8 @@ export type Statement = AsyncFunctionDeclaration | BreakStatement | ContinueStat
  * WARNING: Collision with lib.es5.d.ts symbol.
  */
 export type PropertyKey = Identifier | Literal;
-export type PropertyValue = AssignmentPattern | AsyncFunctionExpression | BindingIdentifier | BindingPattern | FunctionExpression;
+export type PropertyValue = AssignmentPattern | BindingIdentifier | BindingPattern | FunctionExpression;
 export type StatementListItem = Declaration | Statement;
-
-export function is_member_expression(node: Node): node is ComputedMemberExpression | StaticMemberExpression {
-    return is_computed_member_expression(node) || is_static_member_expression(node);
-}
 
 export abstract class BaseNode implements Node {
     leadingComments?: Comment[];
@@ -76,12 +73,12 @@ export abstract class BaseNode implements Node {
     }
 }
 
-export class ArrayExpression {
-    readonly type: string;
+export class ArrayExpression extends BaseNode {
     readonly elements: ArrayExpressionElement[];
     constructor(elements: ArrayExpressionElement[]) {
-        this.type = Syntax.ArrayExpression;
+        super(Syntax.ArrayExpression);
         this.elements = elements;
+        assert(is_array_expression(this), this.type);
     }
 }
 
@@ -89,12 +86,12 @@ export function is_array_expression(node: Node): node is ArrayExpression {
     return node.type === Syntax.ArrayExpression;
 }
 
-export class ArrayPattern {
-    readonly type: string;
+export class ArrayPattern extends BaseNode {
     readonly elements: ArrayPatternElement[];
     constructor(elements: ArrayPatternElement[]) {
-        this.type = Syntax.ArrayPattern;
+        super(Syntax.ArrayPattern);
         this.elements = elements;
+        assert(is_array_pattern(this), this.type);
     }
 }
 
@@ -102,8 +99,7 @@ export function is_array_pattern(node: Node): node is ArrayPattern {
     return node.type === Syntax.ArrayPattern;
 }
 
-export class ArrowFunctionExpression {
-    readonly type: string;
+export class ArrowFunctionExpression extends BaseNode {
     readonly id: Identifier | null;
     readonly params: FunctionParameter[];
     readonly body: BlockStatement | Expression;
@@ -111,21 +107,20 @@ export class ArrowFunctionExpression {
     readonly expression: boolean;
     readonly async: boolean;
     constructor(params: FunctionParameter[], body: BlockStatement | Expression, expression: boolean) {
-        this.type = Syntax.ArrowFunctionExpression;
+        super(Syntax.ArrowFunctionExpression);
         this.id = null;
         this.params = params;
         this.body = body;
         this.generator = false;
         this.expression = expression;
         this.async = false;
+        assert(is_arrow_function_expression(this), this.type);
     }
 }
 
-/*
 export function is_arrow_function_expression(node: Node): node is ArrowFunctionExpression {
     return node.type === Syntax.ArrowFunctionExpression;
 }
-*/
 
 export class ArrowParameterPlaceHolder extends BaseNode {
     readonly params: Expression[];
@@ -134,6 +129,7 @@ export class ArrowParameterPlaceHolder extends BaseNode {
         super(Syntax.ArrowParameterPlaceHolder);
         this.params = params;
         this.async = async;
+        assert(is_arrow_parameter_placeholder(this), this.type);
     }
 }
 
@@ -141,16 +137,16 @@ export function is_arrow_parameter_placeholder(node: Node): node is ArrowParamet
     return node.type === Syntax.ArrowParameterPlaceHolder;
 }
 
-export class AssignmentExpression {
-    readonly type: string;
+export class AssignmentExpression extends BaseNode {
     readonly operator: string;
     readonly left: Expression;
     readonly right: Expression;
     constructor(operator: string, left: Expression, right: Expression) {
-        this.type = Syntax.AssignmentExpression;
+        super(Syntax.AssignmentExpression);
         this.operator = operator;
         this.left = left;
         this.right = right;
+        assert(is_assignment_expression(this), this.type);
     }
 }
 
@@ -158,14 +154,14 @@ export function is_assignment_expression(node: Node): node is AssignmentExpressi
     return node.type === Syntax.AssignmentExpression;
 }
 
-export class AssignmentPattern {
-    readonly type: string;
+export class AssignmentPattern extends BaseNode {
     readonly left: BindingIdentifier | BindingPattern;
     readonly right: Expression;
     constructor(left: BindingIdentifier | BindingPattern, right: Expression) {
-        this.type = Syntax.AssignmentPattern;
+        super(Syntax.AssignmentPattern);
         this.left = left;
         this.right = right;
+        assert(is_assignment_pattern(this), this.type);
     }
 }
 
@@ -211,25 +207,6 @@ export class AsyncFunctionDeclaration {
     }
 }
 
-export class AsyncFunctionExpression {
-    readonly type: string;
-    readonly id: Identifier | null;
-    readonly params: FunctionParameter[];
-    readonly body: BlockStatement;
-    readonly generator: boolean;
-    readonly expression: boolean;
-    readonly async: boolean;
-    constructor(id: Identifier | null, params: FunctionParameter[], body: BlockStatement, generator: boolean) {
-        this.type = Syntax.FunctionExpression;
-        this.id = id;
-        this.params = params;
-        this.body = body;
-        this.generator = generator;
-        this.expression = false;
-        this.async = true;
-    }
-}
-
 export class AwaitExpression {
     readonly type: string;
     readonly argument: Expression;
@@ -239,22 +216,32 @@ export class AwaitExpression {
     }
 }
 
-export class BinaryExpression {
-    readonly type: string;
-    readonly operator: string;
+export type LogicalOperator = '||' | '&&' | '??';
+export type BinaryOperator = '+' | '-' | '*' | '/' | '|' | '^' | '**' | '===' | '!==' | '==' | '!=' | '&' | '<' | '>' | '<=' | '>=' | '<<' | '>>' | '>>>' | '%' | 'in' | 'instanceof' | LogicalOperator;
+
+function is_logical_operator(operator: BinaryOperator): operator is LogicalOperator {
+    return operator === '||' || operator === '&&' || operator === '??';
+}
+
+function binary_expression_type(operator: BinaryOperator): string {
+    return is_logical_operator(operator) ? Syntax.LogicalExpression : Syntax.BinaryExpression;
+}
+
+export class BinaryExpression extends BaseNode {
+    readonly operator: BinaryOperator;
     readonly left: Expression;
     readonly right: Expression;
-    constructor(operator: string, left: Expression, right: Expression) {
-        const logical = (operator === '||' || operator === '&&' || operator === '??');
-        this.type = logical ? Syntax.LogicalExpression : Syntax.BinaryExpression;
+    constructor(operator: BinaryOperator, left: Expression, right: Expression) {
+        super(binary_expression_type(operator));
         this.operator = operator;
         this.left = left;
         this.right = right;
+        assert(is_binary_expression(this), this.type);
     }
 }
 
 export function is_binary_expression(node: Node): node is BinaryExpression {
-    return node.type === Syntax.BinaryExpression;
+    return (node.type === Syntax.BinaryExpression) || (node.type === Syntax.LogicalExpression);
 }
 
 export class BlockStatement extends BaseNode {
@@ -262,6 +249,7 @@ export class BlockStatement extends BaseNode {
     constructor(body: Statement[]) {
         super(Syntax.BlockStatement);
         this.body = body;
+        assert(is_block_statement(this), this.type);
     }
 }
 
@@ -269,26 +257,34 @@ export function is_block_statement(node: Node): node is BlockStatement {
     return node.type === Syntax.BlockStatement;
 }
 
-export class BreakStatement {
-    readonly type: string;
+export class BreakStatement extends BaseNode {
     readonly label: Identifier | null;
     constructor(label: Identifier | null) {
-        this.type = Syntax.BreakStatement;
+        super(Syntax.BreakStatement);
         this.label = label;
+        assert(is_break_statement(this), this.type);
     }
 }
 
-export class CallExpression {
-    readonly type: string;
+export function is_break_statement(node: Node): node is BreakStatement {
+    return node.type === Syntax.BreakStatement;
+}
+
+export class CallExpression extends BaseNode {
     readonly callee: Expression | Import;
     readonly arguments: ArgumentListElement[];
     readonly optional: boolean;
     constructor(callee: Expression | Import, args: ArgumentListElement[], optional: boolean) {
-        this.type = Syntax.CallExpression;
+        super(Syntax.CallExpression);
         this.callee = callee;
         this.arguments = args;
         this.optional = optional;
+        assert(is_call_expression(this), this.type);
     }
+}
+
+export function is_call_expression(node: Node): node is CallExpression {
+    return node.type === Syntax.CallExpression;
 }
 
 export class CatchClause {
@@ -343,30 +339,6 @@ export class ClassExpression {
         this.id = id;
         this.superClass = superClass;
         this.body = body;
-    }
-}
-
-export class ComputedMemberExpression {
-    readonly type: string;
-    readonly computed: boolean;
-    readonly object: Expression;
-    readonly property: Expression;
-    readonly optional: boolean;
-    constructor(object: Expression, property: Expression, optional: boolean) {
-        this.type = Syntax.MemberExpression;
-        this.computed = true;
-        this.object = object;
-        this.property = property;
-        this.optional = optional;
-    }
-}
-
-export function is_computed_member_expression(node: Node): node is ComputedMemberExpression {
-    if (node.type === Syntax.MemberExpression) {
-        return (node as ComputedMemberExpression).computed === true;
-    }
-    else {
-        return false;
     }
 }
 
@@ -470,12 +442,12 @@ export class ExportSpecifier {
     }
 }
 
-export class ExpressionStatement {
-    readonly type: string;
+export class ExpressionStatement extends BaseNode {
     readonly expression: Expression;
     constructor(expression: Expression) {
-        this.type = Syntax.ExpressionStatement;
+        super(Syntax.ExpressionStatement);
         this.expression = expression;
+        assert(is_expression_statement(this), this.type);
     }
 }
 
@@ -528,8 +500,7 @@ export class ForStatement {
     }
 }
 
-export class FunctionDeclaration {
-    readonly type: string;
+export class FunctionDeclaration extends BaseNode {
     readonly id: Identifier | null;
     readonly params: FunctionParameter[];
     readonly body: BlockStatement;
@@ -537,41 +508,50 @@ export class FunctionDeclaration {
     readonly expression: boolean;
     readonly async: boolean;
     constructor(id: Identifier | null, params: FunctionParameter[], body: BlockStatement, generator: boolean) {
-        this.type = Syntax.FunctionDeclaration;
+        super(Syntax.FunctionDeclaration);
         this.id = id;
         this.params = params;
         this.body = body;
         this.generator = generator;
         this.expression = false;
         this.async = false;
+        assert(is_function_declaration(this), this.type);
     }
 }
 
-export class FunctionExpression {
-    readonly type: string;
+export function is_function_declaration(node: Node): node is FunctionDeclaration {
+    return node.type === Syntax.FunctionDeclaration;
+}
+
+export class FunctionExpression extends BaseNode {
     readonly id: Identifier | null;
     readonly params: FunctionParameter[];
     readonly body: BlockStatement;
     readonly generator: boolean;
     readonly expression: boolean;
     readonly async: boolean;
-    constructor(id: Identifier | null, params: FunctionParameter[], body: BlockStatement, generator: boolean) {
-        this.type = Syntax.FunctionExpression;
+    constructor(id: Identifier | null, params: FunctionParameter[], body: BlockStatement, isGenerator: boolean, isAsync: boolean) {
+        super(Syntax.FunctionExpression);
         this.id = id;
         this.params = params;
         this.body = body;
-        this.generator = generator;
+        this.generator = isGenerator;
         this.expression = false;
-        this.async = false;
+        this.async = isAsync;
+        assert(is_function_expression(this), this.type);
     }
 }
 
-export class Identifier {
-    readonly type: string;
+export function is_function_expression(node: Node): node is FunctionExpression {
+    return node.type === Syntax.FunctionExpression;
+}
+
+export class Identifier extends BaseNode {
     readonly name: string;
     constructor(name: string) {
-        this.type = Syntax.Identifier;
+        super(Syntax.Identifier);
         this.name = name;
+        assert(is_identifier(this), this.type);
     }
 }
 
@@ -639,30 +619,53 @@ export class ImportSpecifier {
     }
 }
 
-export class LabeledStatement {
-    readonly type: string;
+export class LabeledStatement extends BaseNode {
     readonly label: Identifier;
     readonly body: Statement;
     constructor(label: Identifier, body: Statement) {
-        this.type = Syntax.LabeledStatement;
+        super(Syntax.LabeledStatement);
         this.label = label;
         this.body = body;
+        assert(is_labeled_statement(this), this.type);
     }
 }
 
-export class Literal {
-    readonly type: string;
+export function is_labeled_statement(node: Node): node is LabeledStatement {
+    return node.type === Syntax.LabeledStatement;
+}
+
+export class Literal extends BaseNode {
     readonly value: boolean | number | string | null;
     readonly raw: string;
     constructor(value: boolean | number | string | null, raw: string) {
-        this.type = Syntax.Literal;
+        super(Syntax.Literal);
         this.value = value;
         this.raw = raw;
+        assert(is_literal(this), this.type);
     }
 }
 
 export function is_literal(node: Node): node is Literal {
     return node.type === Syntax.Literal;
+}
+
+export class MemberExpression extends BaseNode {
+    readonly computed: boolean;
+    readonly object: Expression;
+    readonly property: Expression;
+    readonly optional: boolean;
+    constructor(object: Expression, property: Expression, optional: boolean, computed: boolean) {
+        super(Syntax.MemberExpression);
+        this.computed = computed;
+        this.object = object;
+        this.property = property;
+        this.optional = optional;
+        assert(is_member_expression(this), this.type);
+    }
+}
+
+export function is_member_expression(node: Node): node is MemberExpression {
+    return node.type === Syntax.MemberExpression;
 }
 
 export class MetaProperty {
@@ -676,39 +679,48 @@ export class MetaProperty {
     }
 }
 
-export class MethodDefinition {
-    readonly type: string;
+export class MethodDefinition extends BaseNode {
     readonly key: Expression | null;
     readonly computed: boolean;
-    readonly value: AsyncFunctionExpression | FunctionExpression | null;
+    readonly value: FunctionExpression | null;
     readonly kind: string;
     readonly static: boolean;
-    constructor(key: Expression | null, computed: boolean, value: AsyncFunctionExpression | FunctionExpression | null, kind: string, isStatic: boolean) {
-        this.type = Syntax.MethodDefinition;
+    constructor(key: Expression | null, computed: boolean, value: FunctionExpression | null, kind: string, isStatic: boolean) {
+        super(Syntax.MethodDefinition);
         this.key = key;
         this.computed = computed;
         this.value = value;
         this.kind = kind;
         this.static = isStatic;
+        assert(is_method_definition(this), this.type);
     }
 }
 
-export class Module {
-    readonly type: string;
+export function is_method_definition(node: Node): node is MethodDefinition {
+    return node.type === Syntax.MethodDefinition;
+}
+
+export class Module extends BaseNode {
     readonly body: StatementListItem[];
-    readonly sourceType: string;
+    readonly sourceType: 'module';
     comments?: Comment[];
     tokens?: TokenEntry[];
     errors?: Error[];
     constructor(body: StatementListItem[]) {
-        this.type = Syntax.Program;
+        super(Syntax.Program);
         this.body = body;
         this.sourceType = 'module';
+        assert(is_module(this), this.type);
     }
 }
 
 export function is_module(node: Node): node is Module {
-    return node instanceof Module;
+    if (is_program(node)) {
+        return node.sourceType === 'module';
+    }
+    else {
+        return false;
+    }
 }
 
 export class NewExpression {
@@ -722,12 +734,12 @@ export class NewExpression {
     }
 }
 
-export class ObjectExpression {
-    readonly type: string;
+export class ObjectExpression extends BaseNode {
     readonly properties: ObjectExpressionProperty[];
     constructor(properties: ObjectExpressionProperty[]) {
-        this.type = Syntax.ObjectExpression;
+        super(Syntax.ObjectExpression);
         this.properties = properties;
+        assert(is_object_expression(this), this.type);
     }
 }
 
@@ -735,12 +747,12 @@ export function is_object_expression(node: Node): node is ObjectExpression {
     return node.type === Syntax.ObjectExpression;
 }
 
-export class ObjectPattern {
-    readonly type: string;
+export class ObjectPattern extends BaseNode {
     readonly properties: ObjectPatternProperty[];
     constructor(properties: ObjectPatternProperty[]) {
-        this.type = Syntax.ObjectPattern;
+        super(Syntax.ObjectPattern);
         this.properties = properties;
+        assert(is_object_pattern(this), this.type);
     }
 }
 
@@ -748,8 +760,7 @@ export function is_object_pattern(node: Node): node is ObjectPattern {
     return node.type === Syntax.ObjectPattern;
 }
 
-export class Property {
-    readonly type: string;
+export class Property extends BaseNode {
     readonly key: PropertyKey;
     readonly computed: boolean;
     readonly value: PropertyValue | null;
@@ -757,13 +768,14 @@ export class Property {
     readonly method: boolean;
     readonly shorthand: boolean;
     constructor(kind: 'get' | 'set' | 'init', key: PropertyKey, computed: boolean, value: PropertyValue | null, method: boolean, shorthand: boolean) {
-        this.type = Syntax.Property;
+        super(Syntax.Property);
         this.key = key;
         this.computed = computed;
         this.value = value;
         this.kind = kind;
         this.method = method;
         this.shorthand = shorthand;
+        assert(is_property(this), this.type);
     }
 }
 
@@ -784,14 +796,14 @@ export class RegexLiteral {
     }
 }
 
-export type RestElementArgument = ArrayPattern | AssignmentPattern | ComputedMemberExpression | Identifier | ObjectPattern | StaticMemberExpression;
+export type RestElementArgument = ArrayPattern | AssignmentPattern | MemberExpression | Identifier | ObjectPattern;
 
-export class RestElement {
-    readonly type: string;
+export class RestElement extends BaseNode {
     readonly argument: RestElementArgument;
     constructor(argument: RestElementArgument) {
-        this.type = Syntax.RestElement;
+        super(Syntax.RestElement);
         this.argument = argument;
+        assert(is_rest_element(this), this.type);
     }
 }
 
@@ -812,43 +824,47 @@ export function assert_rest_element_argument(node: Node): RestElementArgument {
     }
 }
 
-export class ReturnStatement {
-    readonly type: string;
+export class ReturnStatement extends BaseNode {
     readonly argument: Expression | null;
     constructor(argument: Expression | null) {
-        this.type = Syntax.ReturnStatement;
+        super(Syntax.ReturnStatement);
         this.argument = argument;
+        assert(is_return_statement(this), this.type);
     }
 }
 
-export class Script {
-    readonly type: string;
+export function is_return_statement(node: Node): node is ReturnStatement {
+    return node.type === Syntax.ReturnStatement;
+}
+
+export class Script extends BaseNode {
     readonly body: StatementListItem[];
-    readonly sourceType: string;
+    readonly sourceType: 'script';
     comments?: Comment[];
     tokens?: TokenEntry[];
     errors?: Error[];
     constructor(body: StatementListItem[]) {
-        this.type = Syntax.Program;
+        super(Syntax.Program);
         this.body = body;
         this.sourceType = 'script';
+        assert(is_script(this), this.type);
     }
 }
 
 export function is_script(node: Node): node is Script {
-    return node instanceof Script;
+    return is_program(node) && node.sourceType === 'script';
 }
 
 export function is_program(node: Node): node is Program {
-    return is_module(node) || is_script(node);
+    return node.type === Syntax.Program;
 }
 
-export class SequenceExpression {
-    readonly type: string;
+export class SequenceExpression extends BaseNode {
     readonly expressions: Expression[];
     constructor(expressions: Expression[]) {
-        this.type = Syntax.SequenceExpression;
+        super(Syntax.SequenceExpression);
         this.expressions = expressions;
+        assert(is_sequence_expression(this), this.type);
     }
 }
 
@@ -856,41 +872,17 @@ export function is_sequence_expression(node: Node): node is SequenceExpression {
     return node.type === Syntax.SequenceExpression;
 }
 
-export class SpreadElement {
-    readonly type: string;
+export class SpreadElement extends BaseNode {
     readonly argument: Expression;
     constructor(argument: Expression) {
-        this.type = Syntax.SpreadElement;
+        super(Syntax.SpreadElement);
         this.argument = argument;
+        assert(is_spread_element(this), this.type);
     }
 }
 
 export function is_spread_element(node: Node): node is SpreadElement {
     return node.type === Syntax.SpreadElement;
-}
-
-export class StaticMemberExpression {
-    readonly type: string;
-    readonly computed: boolean;
-    readonly object: Expression;
-    readonly property: Expression;
-    readonly optional: boolean;
-    constructor(object: Expression, property: Expression, optional: boolean) {
-        this.type = Syntax.MemberExpression;
-        this.computed = false;
-        this.object = object;
-        this.property = property;
-        this.optional = optional;
-    }
-}
-
-export function is_static_member_expression(node: Node): node is StaticMemberExpression {
-    if (node.type === Syntax.MemberExpression) {
-        return (node as StaticMemberExpression).computed === false;
-    }
-    else {
-        return false;
-    }
 }
 
 export class Super {
@@ -960,10 +952,10 @@ export class TemplateLiteral {
     }
 }
 
-export class ThisExpression {
-    readonly type: string;
+export class ThisExpression extends BaseNode {
     constructor() {
-        this.type = Syntax.ThisExpression;
+        super(Syntax.ThisExpression);
+        assert(is_this_expression(this), this.type);
     }
 }
 
@@ -993,52 +985,68 @@ export class TryStatement {
     }
 }
 
-export class UnaryExpression {
-    readonly type: string;
-    readonly operator: string;
+export class UnaryExpression extends BaseNode {
+    readonly operator: '+' | '-' | '~' | '!' | 'delete' | 'typeof' | 'void';
     readonly argument: Expression;
     readonly prefix: boolean;
-    constructor(operator: string, argument: Expression) {
-        this.type = Syntax.UnaryExpression;
+    constructor(operator: '+' | '-' | '~' | '!' | 'delete' | 'typeof' | 'void', argument: Expression) {
+        super(Syntax.UnaryExpression);
         this.operator = operator;
         this.argument = argument;
         this.prefix = true;
+        assert(is_unary_expression(this), this.type);
     }
 }
 
-export class UpdateExpression {
-    readonly type: string;
+export function is_unary_expression(node: Node): node is UnaryExpression {
+    return node.type === Syntax.UnaryExpression;
+}
+
+export class UpdateExpression extends BaseNode {
     readonly operator: string;
     readonly argument: Expression;
     readonly prefix: boolean;
     constructor(operator: string, argument: Expression, prefix: boolean) {
-        this.type = Syntax.UpdateExpression;
+        super(Syntax.UpdateExpression);
         this.operator = operator;
         this.argument = argument;
         this.prefix = prefix;
+        assert(is_update_expression(this), this.type);
     }
 }
 
-export class VariableDeclaration {
-    readonly type: string;
+export function is_update_expression(node: Node): node is UpdateExpression {
+    return node.type === Syntax.UpdateExpression;
+}
+
+export class VariableDeclaration extends BaseNode {
     readonly declarations: VariableDeclarator[];
     readonly kind: string;
     constructor(declarations: VariableDeclarator[], kind: string) {
-        this.type = Syntax.VariableDeclaration;
+        super(Syntax.VariableDeclaration);
         this.declarations = declarations;
         this.kind = kind;
+        assert(is_variable_declaration(this), this.type);
     }
 }
 
-export class VariableDeclarator {
-    readonly type: string;
+export function is_variable_declaration(node: Node): node is VariableDeclaration {
+    return node.type === Syntax.VariableDeclaration;
+}
+
+export class VariableDeclarator extends BaseNode {
     readonly id: BindingIdentifier | BindingPattern;
     readonly init: Expression | null;
     constructor(id: BindingIdentifier | BindingPattern, init: Expression | null) {
-        this.type = Syntax.VariableDeclarator;
+        super(Syntax.VariableDeclarator);
         this.id = id;
         this.init = init;
+        assert(is_variable_declarator(this), this.type);
     }
+}
+
+export function is_variable_declarator(node: Node): node is VariableDeclarator {
+    return node.type === Syntax.VariableDeclarator;
 }
 
 export class WhileStatement {
@@ -1063,14 +1071,14 @@ export class WithStatement {
     }
 }
 
-export class YieldExpression {
-    readonly type: string;
+export class YieldExpression extends BaseNode {
     readonly argument: Expression | null;
     readonly delegate: boolean;
     constructor(argument: Expression | null, delegate: boolean) {
-        this.type = Syntax.YieldExpression;
+        super(Syntax.YieldExpression);
         this.argument = argument;
         this.delegate = delegate;
+        assert(is_yield_expression(this), this.type);
     }
 }
 

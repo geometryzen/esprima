@@ -34,7 +34,7 @@ function readFile(filename) {
 function findCanonicalVersion() {
     var matcher, lines, version;
 
-    matcher = /exports\.version\s+=\s+\'([0-9\.\-a-zA-Z]+)\'/;
+    matcher = /exports\.version\s+=\s+'([0-9.\-a-zA-Z]+)'/;
     lines = readFile(require.resolve('../'));
     lines.forEach(function (line) {
         if (matcher.test(line)) {
@@ -49,7 +49,7 @@ function ensureVersion(manifestFile, expectedVersion) {
     var matcher, lines, version;
 
     console.log('Checking', manifestFile, '...');
-    matcher = /"version"\s*\:\s*"([0-9\.\-a-zA-Z]+)"/;
+    matcher = /"version"\s*:\s*"([0-9.\-a-zA-Z]+)"/;
     lines = readFile(manifestFile);
     lines.forEach(function (line) {
         if (matcher.test(line)) {

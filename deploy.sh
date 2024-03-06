@@ -10,5 +10,3 @@ read message
 git commit -m "'$message'"
 git push origin main
 npm run release
-npm run docs
-npm run pages

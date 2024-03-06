@@ -4,10 +4,10 @@ import { ErrorHandler } from './error-handler';
 import { ParseDelegate, ParseOptions } from './esprima';
 import { Messages } from './messages';
 import { Node } from './node';
-import { ArgumentListElement, ArrayExpression, ArrayExpressionElement, ArrayPattern, ArrayPatternElement, ArrowFunctionExpression, ArrowParameterPlaceHolder, assert_function_parameters, AssignmentExpression, AssignmentPattern, AsyncArrowFunctionExpression, AsyncFunctionDeclaration, AsyncFunctionExpression, AwaitExpression, BaseNode, BinaryExpression, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, CallExpression, CatchClause, ChainElement, ChainExpression, ClassBody, ClassDeclaration, ClassExpression, ComputedMemberExpression, ConditionalExpression, ContinueStatement, DebuggerStatement, Directive, DoWhileStatement, EmptyStatement, ExportAllDeclaration, ExportDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration, ExportSpecifier, Expression, ExpressionStatement, ForInStatement, ForOfStatement, ForStatement, FunctionDeclaration, FunctionExpression, FunctionParameter, Identifier, IfStatement, Import, ImportDeclaration, ImportDeclarationSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier, ImportSpecifier, is_array_expression, is_array_pattern, is_arrow_parameter_placeholder, is_assignment_expression, is_assignment_pattern, is_identifier, is_literal, is_member_expression, is_object_expression, is_object_pattern, is_rest_element, is_sequence_expression, is_spread_element, is_yield_expression, LabeledStatement, Literal, MetaProperty, MethodDefinition, Module, NewExpression, ObjectExpression, ObjectExpressionProperty, ObjectPattern, ObjectPatternProperty, Property, PropertyKey, PropertyValue, RegexLiteral, RestElement, ReturnStatement, Script, SequenceExpression, SpreadElement, Statement, StatementListItem, StaticMemberExpression, Super, SwitchCase, SwitchStatement, TaggedTemplateExpression, TemplateElement, TemplateLiteral, ThisExpression, ThrowStatement, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, VariableDeclarator, WhileStatement, WithStatement, YieldExpression } from './nodes';
+import { ArgumentListElement, ArrayExpression, ArrayExpressionElement, ArrayPattern, ArrayPatternElement, ArrowFunctionExpression, ArrowParameterPlaceHolder, assert_function_parameters, AssignmentExpression, AssignmentPattern, AsyncArrowFunctionExpression, AsyncFunctionDeclaration, AwaitExpression, BaseNode, BinaryExpression, BindingIdentifier, BindingPattern, BlockStatement, BreakStatement, CallExpression, CatchClause, ChainElement, ChainExpression, ClassBody, ClassDeclaration, ClassExpression, ConditionalExpression, ContinueStatement, DebuggerStatement, Directive, DoWhileStatement, EmptyStatement, ExportAllDeclaration, ExportDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration, ExportSpecifier, Expression, ExpressionStatement, ForInStatement, ForOfStatement, ForStatement, FunctionDeclaration, FunctionExpression, FunctionParameter, Identifier, IfStatement, Import, ImportDeclaration, ImportDeclarationSpecifier, ImportDefaultSpecifier, ImportNamespaceSpecifier, ImportSpecifier, is_array_expression, is_array_pattern, is_arrow_parameter_placeholder, is_assignment_expression, is_assignment_pattern, is_identifier, is_literal, is_member_expression, is_object_expression, is_object_pattern, is_rest_element, is_sequence_expression, is_spread_element, is_unary_expression, is_yield_expression, LabeledStatement, Literal, MemberExpression, MetaProperty, MethodDefinition, Module, NewExpression, ObjectExpression, ObjectExpressionProperty, ObjectPattern, ObjectPatternProperty, Property, PropertyKey, PropertyValue, RegexLiteral, RestElement, ReturnStatement, Script, SequenceExpression, SpreadElement, Statement, StatementListItem, Super, SwitchCase, SwitchStatement, TaggedTemplateExpression, TemplateElement, TemplateLiteral, ThisExpression, ThrowStatement, TryStatement, UnaryExpression, UpdateExpression, VariableDeclaration, VariableDeclarator, WhileStatement, WithStatement, YieldExpression } from './nodes';
 import { Comment, RawToken, RawTokenValue, Scanner, SourceLocation } from './scanner';
 import { Syntax } from './syntax';
-import { assert_raw_token_value, as_string, Token, TokenName } from './token';
+import { assert_raw_token_value, as_binary_operator, as_string, as_unary_operator, Token, TokenName } from './token';
 
 interface MutableNode {
     type: string;
@@ -882,7 +882,7 @@ export class Parser {
         const method = this.parsePropertyMethod(params);
         this.context.allowYield = previousAllowYield;
 
-        return this.finalize(node, new FunctionExpression(null, params.params, method, isGenerator));
+        return this.finalize(node, new FunctionExpression(null, params.params, method, isGenerator, false));
     }
 
     parsePropertyMethodAsyncFunction(isGenerator: boolean): FunctionExpression {
@@ -898,7 +898,7 @@ export class Parser {
         this.context.allowYield = previousAllowYield;
         this.context.isAsync = previousIsAsync;
 
-        return this.finalize(node, new AsyncFunctionExpression(null, params.params, method, isGenerator));
+        return this.finalize(node, new FunctionExpression(null, params.params, method, isGenerator, true));
     }
 
     parseObjectPropertyKey(): PropertyKey {
@@ -1572,7 +1572,7 @@ export class Parser {
             }
         }
         else {
-            expr = this.inheritCoverGrammar(this.matchKeyword('new') ? this.parseNewExpression : this.parsePrimaryExpression);
+            expr = this.parseNewOrPrimaryExpression();
         }
 
         if (isSuper && this.match('(') && !this.context.inClassConstructor) {
@@ -1610,7 +1610,7 @@ export class Parser {
                 this.expect('[');
                 const property = this.isolateCoverGrammar(this.parseExpression);
                 this.expect(']');
-                expr = this.finalize(this.startNode(startToken), new ComputedMemberExpression(expr, property, optional));
+                expr = this.finalize(this.startNode(startToken), new MemberExpression(expr, property, optional, true));
 
             }
             else if (this.lookahead.type === Token.Template && this.lookahead.head) {
@@ -1633,7 +1633,7 @@ export class Parser {
                     this.expect('.');
                 }
                 const property = this.parseIdentifierName();
-                expr = this.finalize(this.startNode(startToken), new StaticMemberExpression(expr, property, optional));
+                expr = this.finalize(this.startNode(startToken), new MemberExpression(expr, property, optional, false));
 
             }
             else {
@@ -1659,15 +1659,30 @@ export class Parser {
         return this.finalize(node, new Super());
     }
 
+    parseNewOrPrimaryExpression(): NewExpression | MetaProperty | Expression {
+        if (this.matchKeyword('new')) {
+            return this.inheritCoverGrammar(this.parseNewExpression);
+        }
+        else {
+            return this.inheritCoverGrammar(this.parsePrimaryExpression);
+        }
+    }
+
+    parseSuperOrNewOrPrimaryExpression(): Super | NewExpression | MetaProperty | Expression {
+        if (this.matchKeyword('super') && this.context.inFunctionBody) {
+            return this.parseSuper();
+        }
+        else {
+            return this.parseNewOrPrimaryExpression();
+        }
+    }
+
     parseLeftHandSideExpression(): Expression {
         assert(this.context.allowIn, 'callee of new expression always allow in keyword.');
 
         const node = this.startNode(this.lookahead);
-        let expr = (this.matchKeyword('super') && this.context.inFunctionBody)
-            ? this.parseSuper()
-            : this.inheritCoverGrammar(this.matchKeyword('new')
-                ? this.parseNewExpression
-                : this.parsePrimaryExpression);
+
+        let expr = this.parseSuperOrNewOrPrimaryExpression();
 
         let hasOptional = false;
         while (true) {
@@ -1683,7 +1698,7 @@ export class Parser {
                 this.expect('[');
                 const property = this.isolateCoverGrammar(this.parseExpression);
                 this.expect(']');
-                expr = this.finalize(node, new ComputedMemberExpression(expr, property, optional));
+                expr = this.finalize(node, new MemberExpression(expr, property, optional, true));
 
             }
             else if (this.lookahead.type === Token.Template && this.lookahead.head) {
@@ -1706,7 +1721,7 @@ export class Parser {
                     this.expect('.');
                 }
                 const property = this.parseIdentifierName();
-                expr = this.finalize(node, new StaticMemberExpression(expr, property, optional));
+                expr = this.finalize(node, new MemberExpression(expr, property, optional, false));
 
             }
             else {
@@ -1771,14 +1786,17 @@ export class Parser {
         return this.finalize(node, new AwaitExpression(argument));
     }
 
+    matchUnaryOp(): boolean {
+        return this.match('+') || this.match('-') || this.match('~') || this.match('!') || this.matchKeyword('delete') || this.matchKeyword('void') || this.matchKeyword('typeof')
+    }
+
     parseUnaryExpression(): Expression {
 
-        if (this.match('+') || this.match('-') || this.match('~') || this.match('!') ||
-            this.matchKeyword('delete') || this.matchKeyword('void') || this.matchKeyword('typeof')) {
+        if (this.matchUnaryOp()) {
             const node = this.startNode(this.lookahead);
             const token = this.nextToken();
             const argument = this.inheritCoverGrammar(this.parseUnaryExpression);
-            const expr = this.finalize(node, new UnaryExpression(as_string(token.value), argument));
+            const expr = this.finalize(node, new UnaryExpression(as_unary_operator(token.value), argument));
             if (this.context.strict && expr.operator === 'delete' && is_identifier(expr.argument)) {
                 this.tolerateError(Messages.StrictDelete);
             }
@@ -1797,13 +1815,13 @@ export class Parser {
     parseExponentiationExpression(): Expression {
         const startToken = this.lookahead;
         const expr = this.inheritCoverGrammar(this.parseUnaryExpression);
-        if (expr.type !== Syntax.UnaryExpression && this.match('**')) {
+        if (!is_unary_expression(expr) && this.match('**')) {
             this.nextToken();
             this.context.isAssignmentTarget = false;
             this.context.isBindingElement = false;
             const left = expr;
             const right = this.isolateCoverGrammar(this.parseExponentiationExpression);
-            return this.finalize(this.startNode(startToken), new BinaryExpression('**', left, right));
+            return this.finalize(this.startNode(startToken), new BinaryExpression(as_binary_operator('**'), left, right));
         }
         else {
             return expr;
@@ -1877,13 +1895,13 @@ export class Parser {
                 // Reduce: make a binary expression from the three topmost entries.
                 while ((stack.length > 2) && (prec <= precedences[precedences.length - 1])) {
                     right = stack.pop() as Expression;
-                    const operator = assert_raw_token_value(stack.pop());
+                    const operator = as_binary_operator(assert_raw_token_value(stack.pop()));
                     precedences.pop();
                     left = stack.pop() as Expression;
                     markers.pop();
                     const marker = markers[markers.length - 1];
                     const node = this.startNode(marker, marker.lineStart);
-                    stack.push(this.finalize(node, new BinaryExpression(as_string(operator), left, right)));
+                    stack.push(this.finalize(node, new BinaryExpression(operator, left, right)));
                 }
 
                 // Shift.
@@ -1903,7 +1921,7 @@ export class Parser {
                 const lastLineStart = lastMarker && lastMarker.lineStart;
                 const node = this.startNode(marker!, lastLineStart);
                 const operator = assert_raw_token_value(stack[i - 1]);
-                expr = this.finalize(node, new BinaryExpression(as_string(operator), stack[i - 2] as Expression, expr));
+                expr = this.finalize(node, new BinaryExpression(as_binary_operator(operator), stack[i - 2] as Expression, expr));
                 i -= 2;
                 lastMarker = marker;
             }
@@ -2117,8 +2135,7 @@ export class Parser {
                     if (this.context.strict && list.stricted) {
                         this.tolerateUnexpectedToken(list.stricted, list.message);
                     }
-                    expr = isAsync ? this.finalize(node, new AsyncArrowFunctionExpression(list.params, body, expression)) :
-                        this.finalize(node, new ArrowFunctionExpression(list.params, body, expression));
+                    expr = isAsync ? this.finalize(node, new AsyncArrowFunctionExpression(list.params, body, expression)) : this.finalize(node, new ArrowFunctionExpression(list.params, body, expression));
 
                     this.context.strict = previousStrict;
                     this.context.allowStrictDirective = previousAllowStrictDirective;
@@ -2191,12 +2208,13 @@ export class Parser {
         this.context.isBindingElement = true;
         if (this.lookahead.type === Token.Keyword) {
             switch (this.lookahead.value) {
-                case 'export':
+                case 'export': {
                     if (!this.context.isModule) {
                         this.tolerateUnexpectedToken(this.lookahead, Messages.IllegalExportDeclaration);
                     }
                     return this.parseExportDeclaration();
-                case 'import':
+                }
+                case 'import': {
                     if (this.matchImportCall()) {
                         return this.parseExpressionStatement();
                     }
@@ -2209,7 +2227,7 @@ export class Parser {
                         }
                         return this.parseImportDeclaration();
                     }
-                    break;
+                }
                 case 'const': return this.parseLexicalDeclaration({ inFor: false });
                 case 'function': return this.parseFunctionDeclaration();
                 case 'class': return this.parseClassDeclaration();
@@ -3454,7 +3472,7 @@ export class Parser {
             : this.finalize(node, new FunctionDeclaration(id, params, body, isGenerator));
     }
 
-    parseFunctionExpression(): AsyncFunctionExpression | FunctionExpression {
+    parseFunctionExpression(): FunctionExpression {
         const node = this.createNode();
 
         const isAsync = this.matchContextualKeyword('async');
@@ -3521,9 +3539,7 @@ export class Parser {
         this.context.isAsync = previousIsAsync;
         this.context.allowYield = previousAllowYield;
 
-        return isAsync
-            ? this.finalize(node, new AsyncFunctionExpression(id, params, body, isGenerator))
-            : this.finalize(node, new FunctionExpression(id, params, body, isGenerator));
+        return this.finalize(node, new FunctionExpression(id, params, body, isGenerator, isAsync));
     }
 
     // https://tc39.github.io/ecma262/#sec-directive-prologues-and-the-use-strict-directive
@@ -3607,7 +3623,7 @@ export class Parser {
         const method = this.parsePropertyMethod(formalParameters);
         this.context.allowYield = previousAllowYield;
 
-        return this.finalize(node, new FunctionExpression(null, formalParameters.params, method, isGenerator));
+        return this.finalize(node, new FunctionExpression(null, formalParameters.params, method, isGenerator, false));
     }
 
     parseSetterMethod(): FunctionExpression {
@@ -3626,7 +3642,7 @@ export class Parser {
         const method = this.parsePropertyMethod(formalParameters);
         this.context.allowYield = previousAllowYield;
 
-        return this.finalize(node, new FunctionExpression(null, formalParameters.params, method, isGenerator));
+        return this.finalize(node, new FunctionExpression(null, formalParameters.params, method, isGenerator, false));
     }
 
     parseGeneratorMethod(): FunctionExpression {
@@ -3641,7 +3657,7 @@ export class Parser {
         const method = this.parsePropertyMethod(params);
         this.context.allowYield = previousAllowYield;
 
-        return this.finalize(node, new FunctionExpression(null, params.params, method, isGenerator));
+        return this.finalize(node, new FunctionExpression(null, params.params, method, isGenerator, false));
     }
 
     // https://tc39.github.io/ecma262/#sec-generator-function-definitions

@@ -107,13 +107,13 @@ export function parse(sourceText: string, options?: ParseOptions, delegate?: Par
 export function parseModule(sourceText: string, options: ParseOptions = {}, delegate?: ParseDelegate): Module {
     const parsingOptions = options || {};
     parsingOptions.sourceType = 'module';
-    return parse(sourceText, parsingOptions, delegate);
+    return parse(sourceText, parsingOptions, delegate) as Module;
 }
 
 export function parseScript(sourceText: string, options: ParseOptions = {}, delegate?: ParseDelegate): Script {
     const parsingOptions = options || {};
     parsingOptions.sourceType = 'script';
-    return parse(sourceText, parsingOptions, delegate);
+    return parse(sourceText, parsingOptions, delegate) as Script;
 }
 
 export function tokenize(code: string, options: TokenizerConfig, delegate?: (token: TokenEntry) => TokenEntry): TokenEntry[] {
@@ -148,4 +148,4 @@ export function tokenize(code: string, options: TokenizerConfig, delegate?: (tok
 export { Syntax } from './syntax';
 
 // Sync with *.json manifests.
-export const version = '0.9.11';
+export const version = '0.9.12';
